@@ -2,7 +2,7 @@ COV_OUT=cover.out
 SRC=*.go
 TLSCHKR_DIR=cmd/tlschkr
 
-$(TLSCHIR_DIR)/tlschkr: $(TLSCHKR_DIR)/*.go $(SRC)
+$(TLSCHKR_DIR)/tlschkr: $(TLSCHKR_DIR)/*.go $(SRC)
 	cd $(TLSCHKR_DIR) && go build && cd -
 
 test:
