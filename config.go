@@ -34,6 +34,7 @@ type verifyOptions struct {
 }
 
 type connectionOptions struct {
+	IPVersion      *int64  `json:"ip_version"`
 	ConnectTimeout *int64  `json:"connect_timeout"`
 	ReadTimeout    *int64  `json:"read_timeout"`
 	SendPlain      *string `json:"send_plain"`
@@ -82,6 +83,14 @@ func (c *Config) Check() error {
 	if len(errStrs) > 0 {
 		return errors.New(strings.Join(errStrs, ", "))
 	}
+
+	if c.Connection != nil {
+		if c.Connection.IPVersion != nil {
+			if *c.Connection.IPVersion != 4 || *c.Connection.IPVersion != 6 {
+				return errors.New("ip_version allows 4 or 6")
+			}
+		}
+	}
 	return nil
 }
 
@@ -105,6 +114,24 @@ func (c *Config) ServerNameForVerify() *string {
 		return nil
 	}
 	return c.Verify.CheckServername
+}
+
+// DialNetwork returns network string for dial
+func (c *Config) DialNetwork() string {
+	base := "tcp"
+	if c.Connection == nil {
+		return base
+	}
+	if c.Connection.IPVersion == nil {
+		return base
+	}
+	switch *c.Connection.IPVersion {
+	case 4:
+		return base + "4"
+	case 6:
+		return base + "6"
+	}
+	return base
 }
 
 // ConnectTimeout returns timeout(sec) for connection
