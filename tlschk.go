@@ -45,7 +45,7 @@ func DoCheck(reader io.Reader) *Result {
 func connect(conf *Config) (net.Conn, error) {
 	errPrefix := "Network error."
 	rawConn, err := net.DialTimeout(
-		"tcp",
+		conf.DialNetwork(),
 		fmt.Sprintf("%s:%d", *conf.Address, *conf.Port),
 		conf.ConnectTimeout(),
 	)

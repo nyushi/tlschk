@@ -39,6 +39,10 @@ func TestLoadConfigRequired(t *testing.T) {
 			strings.NewReader(`{"port": 443}`),
 			"Config error. address is required",
 		},
+		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 0}}`),
+			"Config error. ip_version allows 4 or 6",
+		},
 	}
 
 	for _, test := range tests {
@@ -117,6 +121,51 @@ func TestServerNameForVerify(t *testing.T) {
 	v = c.ServerNameForVerify()
 	if *v != n {
 		t.Errorf("Config.ServerNameForVerify is %q, want %q", *v, n)
+	}
+}
+
+func TestDialNetwork(t *testing.T) {
+	c := Config{}
+	var want string
+	tcp := "tcp"
+	tcp4 := "tcp4"
+	tcp6 := "tcp6"
+
+	want = tcp
+	v := c.DialNetwork()
+	if v != want {
+		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
+	}
+
+	c.Connection = &connectionOptions{}
+	v = c.DialNetwork()
+	if v != want {
+		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
+	}
+
+	var ver int64
+	ver = 4
+	want = tcp4
+	c.Connection.IPVersion = &ver
+	v = c.DialNetwork()
+	if v != want {
+		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
+	}
+
+	ver = 6
+	want = tcp6
+	c.Connection.IPVersion = &ver
+	v = c.DialNetwork()
+	if v != want {
+		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
+	}
+
+	ver = 7
+	want = tcp
+	c.Connection.IPVersion = &ver
+	v = c.DialNetwork()
+	if v != tcp {
+		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
 	}
 }
 
