@@ -1,0 +1,17 @@
+machine:
+  timezone:
+    Asia/Tokyo
+test:
+  override:
+    - go get golang.org/x/tools/cmd/cover
+    - go get github.com/mattn/goveralls
+    - make cmd/tlschkr/tlschkr
+    - make test-cov
+    - goveralls -v -coverprofile=cover.out -service=circle-ci -repotoken $COVERALLS_TOKEN
+
+  post:
+    - cp cmd/tlschkr/tlschkr $CIRCLE_ARTIFACTS
+    - mkdir $HOME/.go_workspace/src/github.com/nyushi
+    - ln -snf $HOME/tlschk $HOME/.go_workspace/src/github.com/nyushi/
+    - cd $HOME/.go_workspace/src/github.com/nyushi/tlschk/cmd/tlschkr/ && goxc
+    - cp -r /home/ubuntu/.go_workspace/bin/tlschkr-xc/snapshot $CIRCLE_ARTIFACTS
