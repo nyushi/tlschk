@@ -29,6 +29,7 @@ type Config struct {
 type verifyOptions struct {
 	CheckServername *string  `json:"check_servername"`
 	CheckTrusted    *bool    `json:"check_trusted"`
+	CheckRevocation *bool    `json:"check_revocation"`
 	RootCerts       []string `json:"root_certs"`
 }
 
@@ -170,6 +171,17 @@ func (c *Config) CheckTrusted() bool {
 		return true
 	}
 	return *c.Verify.CheckTrusted
+}
+
+// CheckRevocation returns true if revocation check is enabled
+func (c *Config) CheckRevocation() bool {
+	if c.Verify == nil {
+		return false
+	}
+	if c.Verify.CheckRevocation == nil {
+		return false
+	}
+	return *c.Verify.CheckRevocation
 }
 
 // RootCerts returns x509.Certificate slice

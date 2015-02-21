@@ -123,11 +123,25 @@ func verify(conf *Config, tlsConn *tls.Conn) error {
 		verifyOpts.DNSName = *serverName
 	}
 
-	if _, err := serverCert.Verify(verifyOpts); err != nil {
+	chains, err := serverCert.Verify(verifyOpts)
+	if err != nil {
 		return fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 
-	// TODO revocation check
+	if conf.CheckRevocation() {
+		revokeChains := make([]bool, len(chains))
+		for i, chain := range chains {
+			revokeChains[i] = isRevokedChain(chain)
+		}
+
+		for _, b := range revokeChains {
+			if !b {
+				// valid chain found
+				return nil
+			}
+		}
+		return fmt.Errorf("%s %s", errPrefix, "revoked")
+	}
 	return nil
 }
 
