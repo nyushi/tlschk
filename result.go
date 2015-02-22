@@ -1,8 +1,12 @@
 package tlschk
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"hash"
 )
 
 // Result represents check result
@@ -24,6 +28,8 @@ type certificate struct {
 	Subject         string   `json:"subject"`
 	SubjectAltNames []string `json:"subject_alt_names"`
 	Issuer          string   `json:"issuer"`
+	MD5             string   `json:"md5"`
+	SHA1            string   `json:"sha1"`
 }
 
 type connectionStateGetter interface {
@@ -63,7 +69,14 @@ func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
 				Subject:         cert.Subject.CommonName,
 				SubjectAltNames: cert.DNSNames,
 				Issuer:          cert.Issuer.CommonName,
+				MD5:             fingerprint(cert, md5.New()),
+				SHA1:            fingerprint(cert, sha1.New()),
 			}
 		}
 	}
+}
+
+func fingerprint(c *x509.Certificate, h hash.Hash) string {
+	h.Write(c.Raw)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
