@@ -24,6 +24,8 @@ func DoCheck(reader io.Reader) (r *Result) {
 		return
 	}
 	defer rawConn.Close()
+	tcpConn := rawConn.(*net.TCPConn)
+	r.SetConnectionInfo(tcpConn)
 
 	tlsConn, err := startTLS(conf, rawConn)
 	if err != nil {
