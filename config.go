@@ -86,7 +86,7 @@ func (c *Config) Check() error {
 
 	if c.Connection != nil {
 		if c.Connection.IPVersion != nil {
-			if *c.Connection.IPVersion != 4 || *c.Connection.IPVersion != 6 {
+			if *c.Connection.IPVersion != 4 && *c.Connection.IPVersion != 6 {
 				return errors.New("ip_version allows 4 or 6")
 			}
 		}

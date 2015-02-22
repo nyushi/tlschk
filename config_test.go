@@ -21,34 +21,47 @@ func (e errReader) Read([]byte) (int, error) {
 func TestLoadConfigRequired(t *testing.T) {
 	tests := []struct {
 		in  io.Reader
-		out string
+		out error
 	}{
 		{
 			errReader{"this is error"},
-			"Config error. Failed to read input. this is error",
+			errors.New("Config error. Failed to read input. this is error"),
 		},
 		{
 			strings.NewReader(``),
-			"Config error. Failed to load config json. unexpected end of JSON input",
+			errors.New("Config error. Failed to load config json. unexpected end of JSON input"),
 		},
 		{
 			strings.NewReader(`{"address": "127.0.0.1"}`),
-			"Config error. port is required",
+			errors.New("Config error. port is required"),
 		},
 		{
 			strings.NewReader(`{"port": 443}`),
-			"Config error. address is required",
+			errors.New("Config error. address is required"),
 		},
 		{
 			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 0}}`),
-			"Config error. ip_version allows 4 or 6",
+			errors.New("Config error. ip_version allows 4 or 6"),
+		},
+		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 4}}`),
+			nil,
+		},
+		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 6}}`),
+			nil,
 		},
 	}
 
 	for _, test := range tests {
 		_, err := LoadConfig(test.in)
-		if err == nil || err.Error() != test.out {
-			t.Errorf("LoadConfigs returns %q, want %q", err.Error(), test.out)
+		if err == nil && test.out == nil {
+		} else if err != nil && test.out == nil {
+			t.Errorf("LoadConfigs returns %q, want nil", err.Error())
+		} else if err == nil && test.out != nil {
+			t.Errorf("LoadConfigs returns nil, want %q", test.out.Error())
+		} else if err.Error() != test.out.Error() {
+			t.Errorf("LoadConfigs returns %q, want %q", err.Error(), test.out.Error())
 		}
 	}
 
