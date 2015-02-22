@@ -27,7 +27,8 @@ func DoCheck(reader io.Reader) *Result {
 		return NewResult(err, nil)
 	}
 
-	if err := verify(conf, tlsConn); err != nil {
+	trustedChains, err := verify(conf, tlsConn)
+	if err != nil {
 		return NewResult(err, tlsConn)
 	}
 
@@ -38,6 +39,7 @@ func DoCheck(reader io.Reader) *Result {
 	recvStr := string(readBuf)
 
 	result := NewResult(nil, tlsConn)
+	result.SetTrustedChains(trustedChains)
 	result.Recv = &recvStr
 	return result
 }
@@ -88,7 +90,7 @@ func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	return tlsConn, nil
 }
 
-func verify(conf *Config, tlsConn *tls.Conn) error {
+func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	errPrefix := "TLS verify error."
 
 	connState := tlsConn.ConnectionState()
@@ -125,24 +127,30 @@ func verify(conf *Config, tlsConn *tls.Conn) error {
 
 	chains, err := serverCert.Verify(verifyOpts)
 	if err != nil {
-		return fmt.Errorf("%s %s", errPrefix, err.Error())
+		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 
-	if conf.CheckRevocation() {
-		revokeChains := make([]bool, len(chains))
-		for i, chain := range chains {
+	trustedChains := [][]*x509.Certificate{}
+	revokeChains := make([]bool, len(chains))
+	for i, chain := range chains {
+		if conf.CheckRevocation() {
 			revokeChains[i] = isRevokedChain(chain)
+		} else {
+			revokeChains[i] = false
 		}
-
-		for _, b := range revokeChains {
-			if !b {
-				// valid chain found
-				return nil
-			}
-		}
-		return fmt.Errorf("%s %s", errPrefix, "revoked")
 	}
-	return nil
+
+	for i, b := range revokeChains {
+		if !b {
+			// valid chain found
+			trustedChains = append(trustedChains, chains[i])
+		}
+	}
+
+	if len(trustedChains) == 0 {
+		return nil, fmt.Errorf("%s %s", errPrefix, "revoked")
+	}
+	return trustedChains, nil
 }
 
 func roundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {

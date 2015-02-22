@@ -2,6 +2,7 @@ package tlschk
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"testing"
 )
@@ -56,5 +57,26 @@ func TestNewResultWithTLSInfo(t *testing.T) {
 	}
 	if r.TLSInfo.Cipher != "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256" {
 		t.Errorf("r.TLSInfo.Cipher is %q not TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", r.TLSInfo.Cipher)
+	}
+}
+
+func TestSetTrustedChains(t *testing.T) {
+	r := Result{}
+	chains := [][]*x509.Certificate{[]*x509.Certificate{leaf.X509Cert, chain.X509Cert, root.X509Cert}}
+	r.SetTrustedChains(chains)
+	if r.TLSInfo != nil {
+		t.Errorf("r.TLSInfo is %q, want nil", chains)
+	}
+
+	r.TLSInfo = &tlsInfo{}
+	r.SetTrustedChains(chains)
+	if r.TLSInfo == nil {
+		t.Error("r.TLSInfo is nil, want not nil")
+	}
+	if len(r.TLSInfo.TrustedChains) != 1 {
+		t.Errorf("r.TLSInfo.TrustedChains len is %q, want 1", len(r.TLSInfo.TrustedChains))
+	}
+	if len(r.TLSInfo.TrustedChains[0]) != 3 {
+		t.Errorf("r.TLSInfo.TrustedChains[0] len is %q, want 3", len(r.TLSInfo.TrustedChains))
 	}
 }
