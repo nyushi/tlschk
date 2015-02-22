@@ -98,6 +98,21 @@ func (c *Config) Check() error {
 			}
 		}
 	}
+
+	if _, errs := c.CipherSuites(); errs != nil {
+		for _, err := range errs {
+			errStrs = append(errStrs, fmt.Sprintf("%s", err.Error()))
+		}
+		if len(errStrs) > 0 {
+			return errors.New(strings.Join(errStrs, ", "))
+		}
+	}
+	if _, err := c.MinVersion(); err != nil {
+		return err
+	}
+	if _, err := c.MaxVersion(); err != nil {
+		return err
+	}
 	return nil
 }
 

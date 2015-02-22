@@ -45,6 +45,18 @@ func TestLoadConfigRequired(t *testing.T) {
 			errors.New("Config error. ip_version allows 4 or 6"),
 		},
 		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"cipher_suites": ["no_such_cipher1", "no_such_cipher2"]}}`),
+			errors.New("Config error. no_such_cipher1 is not supported, no_such_cipher2 is not supported"),
+		},
+		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"min_version": "no_such_version"}}`),
+			errors.New("Config error. no_such_version is not supported"),
+		},
+		{
+			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"max_version": "no_such_version"}}`),
+			errors.New("Config error. no_such_version is not supported"),
+		},
+		{
 			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 4}}`),
 			nil,
 		},
