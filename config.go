@@ -24,6 +24,7 @@ type Config struct {
 	Port       *int               `json:"port"`
 	Connection *connectionOptions `json:"connection"`
 	Verify     *verifyOptions     `json:"verify"`
+	Handshake  *handshakeOptions  `json:"handshake"`
 }
 
 type verifyOptions struct {
@@ -40,6 +41,12 @@ type connectionOptions struct {
 	SendPlain      *string `json:"send_plain"`
 	SendTLS        *string `json:"send_tls"`
 	RecvSize       *int    `json:"recv_size"`
+}
+
+type handshakeOptions struct {
+	CipherSuites []string `json:"cipher_suites"`
+	MinVersion   *string  `json:"min_version"`
+	MaxVersion   *string  `json:"max_version"`
 }
 
 // LoadConfig returns configuratoin
@@ -99,9 +106,9 @@ func (c *Config) TLSConfig() *tls.Config {
 	// TODO chipher and protocol specification
 	tlsConf := &tls.Config{}
 	tlsConf.InsecureSkipVerify = true
-	//tlsConf.MinVersion = tls.VersionSSL30
-	//tlsConf.MaxVersion = tls.VersionTLS12
-	//tlsConf.CipherSuites = []uint16{tls.TLS_RSA_WITH_RC4_128_SHA}
+	tlsConf.MinVersion, _ = c.MinVersion()
+	tlsConf.MaxVersion, _ = c.MaxVersion()
+	tlsConf.CipherSuites, _ = c.CipherSuites()
 	return tlsConf
 }
 
@@ -252,4 +259,52 @@ func loadPEMCert(p string) (*x509.Certificate, error) {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 	return x509Cert, nil
+}
+
+// CipherSuites returns uint16 ciphers
+func (c *Config) CipherSuites() (ciphers []uint16, errs []error) {
+	if c.Handshake == nil {
+		return
+	}
+	for _, cipherStr := range c.Handshake.CipherSuites {
+		cipher := TLSCipherInt(cipherStr)
+		if cipher == 0 {
+			errs = append(errs, fmt.Errorf("%s is not supported", cipherStr))
+		} else {
+			ciphers = append(ciphers, cipher)
+		}
+	}
+	return
+}
+
+func (c *Config) tlsVersion(versionString string) (ver uint16, err error) {
+	ver = TLSVersionInt(versionString)
+	if ver == 0 {
+		err = fmt.Errorf("%s is not supported", versionString)
+	}
+	return
+}
+
+// MinVersion returns min version by uint16
+func (c *Config) MinVersion() (ver uint16, err error) {
+	if c.Handshake == nil {
+		return
+	}
+	if c.Handshake.MinVersion == nil {
+		return
+	}
+	ver, err = c.tlsVersion(*c.Handshake.MinVersion)
+	return
+}
+
+// MaxVersion returns min version by uint16
+func (c *Config) MaxVersion() (ver uint16, err error) {
+	if c.Handshake == nil {
+		return
+	}
+	if c.Handshake.MaxVersion == nil {
+		return
+	}
+	ver, err = c.tlsVersion(*c.Handshake.MaxVersion)
+	return
 }

@@ -2,6 +2,7 @@ package tlschk
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -336,5 +337,129 @@ func TestRootCerts(t *testing.T) {
 	v = c.RootCerts()
 	if len(v) != 1 {
 		t.Errorf("Config.RootCerts size is %q, want 1", len(v))
+	}
+}
+
+func TestCipherSuites(t *testing.T) {
+	c := Config{}
+
+	var v []uint16
+	var errs []error
+	v, errs = c.CipherSuites()
+	if v != nil {
+		t.Errorf("Config.CipherSuites returns %q, not nil", v)
+	}
+	if errs != nil {
+		t.Errorf("Config.CipherSuites returns %q, not nil", errs)
+	}
+
+	c.Handshake = &handshakeOptions{}
+	v, errs = c.CipherSuites()
+	if v != nil {
+		t.Errorf("Config.CipherSuites returns %q, not nil", v)
+	}
+	if errs != nil {
+		t.Errorf("Config.CipherSuites returns %q, not nil", errs)
+	}
+
+	c.Handshake.CipherSuites = []string{"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA", "no such cipher"}
+	v, errs = c.CipherSuites()
+	if v == nil {
+		t.Error("Config.CipherSuites returns nil")
+	}
+	if len(v) != 1 {
+		t.Errorf("Config.CipherSuites returns size %q slice, want 1", len(v))
+	}
+	if errs == nil {
+		t.Error("Config.CipherSuites returns nil")
+	}
+	if len(errs) != 1 {
+		t.Errorf("Config.CipherSuites returns size %q slice, want 1", len(errs))
+	}
+}
+
+func TestMinVersion(t *testing.T) {
+	c := Config{}
+	var v uint16
+	var err error
+
+	v, err = c.MinVersion()
+	if v != 0 {
+		t.Errorf("Config.MinVersion returns %q, want 0", v)
+	}
+	if err != nil {
+		t.Errorf("Config.MinVersion returns %q, want nil", err.Error())
+	}
+
+	c.Handshake = &handshakeOptions{}
+	v, err = c.MinVersion()
+	if v != 0 {
+		t.Errorf("Config.MinVersion returns %q, want 0", v)
+	}
+	if err != nil {
+		t.Errorf("Config.MinVersion returns %q, want nil", err.Error())
+	}
+
+	versionStr := "TLS1.2"
+	c.Handshake.MinVersion = &versionStr
+	v, err = c.MinVersion()
+	if v != tls.VersionTLS12 {
+		t.Errorf("Config.MinVersion returns %q, want %q", v, tls.VersionTLS12)
+	}
+	if err != nil {
+		t.Errorf("Config.MinVersion returns %q, want nil", err.Error())
+	}
+
+	versionStr = "no such version"
+	c.Handshake.MinVersion = &versionStr
+	v, err = c.MinVersion()
+	if v != 0 {
+		t.Errorf("Config.MinVersion returns %q, want 0", v)
+	}
+	if err == nil {
+		t.Errorf("Config.MinVersion returns nil, want error")
+	}
+}
+
+func TestMaxVersion(t *testing.T) {
+	c := Config{}
+	var v uint16
+	var err error
+
+	v, err = c.MaxVersion()
+	if v != 0 {
+		t.Errorf("Config.MaxVersion returns %q, want 0", v)
+	}
+	if err != nil {
+		t.Errorf("Config.MaxVersion returns %q, want nil", err.Error())
+	}
+
+	c.Handshake = &handshakeOptions{}
+	v, err = c.MaxVersion()
+	if v != 0 {
+		t.Errorf("Config.MaxVersion returns %q, want 0", v)
+	}
+	if err != nil {
+		t.Errorf("Config.MaxVersion returns %q, want nil", err.Error())
+	}
+
+	versionStr := "TLS1.2"
+	c.Handshake.MaxVersion = &versionStr
+	v, err = c.MaxVersion()
+	if v != tls.VersionTLS12 {
+		t.Errorf("Config.MaxVersion returns %q, want %q", v, tls.VersionTLS12)
+	}
+	if err != nil {
+		t.Errorf("Config.MaxVersion returns %q, want nil", err.Error())
+	}
+
+	versionStr = "no such version"
+	c.Handshake.MaxVersion = &versionStr
+	v, err = c.MaxVersion()
+	if v != 0 {
+		t.Errorf("Config.MaxVersion returns %q, want 0", v)
+	}
+	if err == nil {
+		t.Errorf("Config.MaxVersion returns nil, want error")
 	}
 }
