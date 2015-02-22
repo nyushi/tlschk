@@ -20,11 +20,11 @@ type Result struct {
 type tlsInfo struct {
 	Version       string          `json:"version"`
 	Cipher        string          `json:"cipher"`
-	ReceivedCerts []certificate   `json:"received_certs"`
-	TrustedChains [][]certificate `json:"trusted_chains"`
+	ReceivedCerts []certSummary   `json:"received_certs"`
+	TrustedChains [][]certSummary `json:"trusted_chains"`
 }
 
-type certificate struct {
+type certSummary struct {
 	Subject         string   `json:"subject"`
 	SubjectAltNames []string `json:"subject_alt_names"`
 	Issuer          string   `json:"issuer"`
@@ -52,15 +52,9 @@ func NewResult(e error, c connectionStateGetter) *Result {
 			Cipher:  TLSCipherString(connState.CipherSuite),
 		}
 
-		r.TLSInfo.ReceivedCerts = make([]certificate, len(connState.PeerCertificates))
+		r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
 		for i, cert := range connState.PeerCertificates {
-			r.TLSInfo.ReceivedCerts[i] = certificate{
-				Subject:         cert.Subject.CommonName,
-				SubjectAltNames: cert.DNSNames,
-				Issuer:          cert.Issuer.CommonName,
-				MD5:             fingerprint(cert, md5.New()),
-				SHA1:            fingerprint(cert, sha1.New()),
-			}
+			r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
 		}
 	}
 	return &r
@@ -72,17 +66,11 @@ func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
 		return
 	}
 
-	r.TLSInfo.TrustedChains = make([][]certificate, len(chains))
+	r.TLSInfo.TrustedChains = make([][]certSummary, len(chains))
 	for i, chain := range chains {
-		r.TLSInfo.TrustedChains[i] = make([]certificate, len(chain))
+		r.TLSInfo.TrustedChains[i] = make([]certSummary, len(chain))
 		for j, cert := range chain {
-			r.TLSInfo.TrustedChains[i][j] = certificate{
-				Subject:         cert.Subject.CommonName,
-				SubjectAltNames: cert.DNSNames,
-				Issuer:          cert.Issuer.CommonName,
-				MD5:             fingerprint(cert, md5.New()),
-				SHA1:            fingerprint(cert, sha1.New()),
-			}
+			r.TLSInfo.TrustedChains[i][j] = getCertSummary(cert)
 		}
 	}
 }
@@ -90,4 +78,14 @@ func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
 func fingerprint(c *x509.Certificate, h hash.Hash) string {
 	h.Write(c.Raw)
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func getCertSummary(cert *x509.Certificate) certSummary {
+	return certSummary{
+		Subject:         cert.Subject.CommonName,
+		SubjectAltNames: cert.DNSNames,
+		Issuer:          cert.Issuer.CommonName,
+		MD5:             fingerprint(cert, md5.New()),
+		SHA1:            fingerprint(cert, sha1.New()),
+	}
 }
