@@ -51,6 +51,17 @@ func NewResult(e error, c connectionStateGetter) *Result {
 			Version: TLSVersionString(connState.Version),
 			Cipher:  TLSCipherString(connState.CipherSuite),
 		}
+
+		r.TLSInfo.ReceivedCerts = make([]certificate, len(connState.PeerCertificates))
+		for i, cert := range connState.PeerCertificates {
+			r.TLSInfo.ReceivedCerts[i] = certificate{
+				Subject:         cert.Subject.CommonName,
+				SubjectAltNames: cert.DNSNames,
+				Issuer:          cert.Issuer.CommonName,
+				MD5:             fingerprint(cert, md5.New()),
+				SHA1:            fingerprint(cert, sha1.New()),
+			}
+		}
 	}
 	return &r
 }
