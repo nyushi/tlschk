@@ -36,28 +36,27 @@ type connectionStateGetter interface {
 	ConnectionState() tls.ConnectionState
 }
 
-// NewResult returns Result
-func NewResult(e error, c connectionStateGetter) *Result {
-	r := Result{Result: "NG"}
-	if e != nil {
-		r.Detail = e.Error()
-	} else {
-		r.Result = "OK"
+// SetError set error
+func (r *Result) SetError(e error) {
+	r.Result = "NG"
+	r.Detail = e.Error()
+}
+
+// SetTLSInfo set tlsinfo
+func (r *Result) SetTLSInfo(c connectionStateGetter) {
+	if c == nil {
+		return
+	}
+	connState := c.ConnectionState()
+	r.TLSInfo = &tlsInfo{
+		Version: TLSVersionString(connState.Version),
+		Cipher:  TLSCipherString(connState.CipherSuite),
 	}
 
-	if c != nil {
-		connState := c.ConnectionState()
-		r.TLSInfo = &tlsInfo{
-			Version: TLSVersionString(connState.Version),
-			Cipher:  TLSCipherString(connState.CipherSuite),
-		}
-
-		r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
-		for i, cert := range connState.PeerCertificates {
-			r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
-		}
+	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
+	for i, cert := range connState.PeerCertificates {
+		r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
 	}
-	return &r
 }
 
 // SetTrustedChains set trusted certificate chains

@@ -7,23 +7,16 @@ import (
 	"testing"
 )
 
-func TestNewResultSimple(t *testing.T) {
-	r := NewResult(errors.New("test error"), nil)
+func TestResultSetError(t *testing.T) {
+	r := &Result{}
+
+	r.SetError(errors.New("test error"))
 
 	if r.Result != "NG" {
 		t.Errorf("r.Result is %q, want NG", r.Result)
 	}
 	if r.Detail != "test error" {
 		t.Errorf("r.Detail is %q, want \"test error\"", r.Detail)
-	}
-
-	r = NewResult(nil, nil)
-
-	if r.Result != "OK" {
-		t.Errorf("r.Result is %q, want OK", r.Result)
-	}
-	if r.Detail != "" {
-		t.Errorf("r.Detail is %q, want \"\"", r.Detail)
 	}
 }
 
@@ -35,20 +28,15 @@ func (c csGetter) ConnectionState() tls.ConnectionState {
 	return c.cs
 }
 
-func TestNewResultWithTLSInfo(t *testing.T) {
+func TestResultSetTLSInfo(t *testing.T) {
 	c := csGetter{
 		tls.ConnectionState{
 			Version:     tls.VersionTLS12,
 			CipherSuite: tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		},
 	}
-	r := NewResult(nil, c)
-	if r.Result != "OK" {
-		t.Errorf("r.Result is %q, want OK", r.Result)
-	}
-	if r.Detail != "" {
-		t.Errorf("r.Detail is %q, want \"\"", r.Detail)
-	}
+	r := &Result{}
+	r.SetTLSInfo(c)
 	if r.TLSInfo == nil {
 		t.Errorf("r.TLSInfo is nil, want not nil")
 	}
