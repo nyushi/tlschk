@@ -4,11 +4,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"net"
 	"testing"
 )
 
-func TestNewResultSimple(t *testing.T) {
-	r := NewResult(errors.New("test error"), nil)
+func TestResultSetError(t *testing.T) {
+	r := &Result{}
+
+	r.SetError(errors.New("test error"))
 
 	if r.Result != "NG" {
 		t.Errorf("r.Result is %q, want NG", r.Result)
@@ -16,14 +19,49 @@ func TestNewResultSimple(t *testing.T) {
 	if r.Detail != "test error" {
 		t.Errorf("r.Detail is %q, want \"test error\"", r.Detail)
 	}
+}
 
-	r = NewResult(nil, nil)
+type raGetter struct {
+	ra net.Addr
+}
 
-	if r.Result != "OK" {
-		t.Errorf("r.Result is %q, want OK", r.Result)
+func (r raGetter) RemoteAddr() net.Addr {
+	return r.ra
+}
+
+type dummyAddr struct {
+	net string
+	str string
+}
+
+func (da dummyAddr) Network() string {
+	return da.net
+}
+
+func (da dummyAddr) String() string {
+	return da.str
+}
+
+func TestResultSetConnectionInfo(t *testing.T) {
+	r := &Result{}
+	r.SetConnectionInfo(nil)
+	if r.ConnectionInfo != nil {
+		t.Errorf("r.ConnectionInfo is %q, want nil", r.ConnectionInfo)
 	}
-	if r.Detail != "" {
-		t.Errorf("r.Detail is %q, want \"\"", r.Detail)
+
+	s := &raGetter{ra: dummyAddr{"", "127.0.0.1:443"}}
+	r.SetConnectionInfo(s)
+
+	if r.ConnectionInfo == nil {
+		t.Error("r.ConnectionInfo is nil, want not nil")
+	}
+	a := "127.0.0.1"
+	if r.ConnectionInfo.IPAddress != a {
+		t.Errorf("r.ConnectionInfo.IPAddress is %q, want not %q", r.ConnectionInfo.IPAddress, a)
+	}
+	p := 443
+	if r.ConnectionInfo.Port != p {
+		t.Errorf("r.ConnectionInfo.Port is %q, want not %q", r.ConnectionInfo.Port, p)
 	}
 }
 
@@ -35,20 +73,15 @@ func (c csGetter) ConnectionState() tls.ConnectionState {
 	return c.cs
 }
 
-func TestNewResultWithTLSInfo(t *testing.T) {
+func TestResultSetTLSInfo(t *testing.T) {
 	c := csGetter{
 		tls.ConnectionState{
 			Version:     tls.VersionTLS12,
 			CipherSuite: tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		},
 	}
-	r := NewResult(nil, c)
-	if r.Result != "OK" {
-		t.Errorf("r.Result is %q, want OK", r.Result)
-	}
-	if r.Detail != "" {
-		t.Errorf("r.Detail is %q, want \"\"", r.Detail)
-	}
+	r := &Result{}
+	r.SetTLSInfo(c)
 	if r.TLSInfo == nil {
 		t.Errorf("r.TLSInfo is nil, want not nil")
 	}

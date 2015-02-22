@@ -10,38 +10,46 @@ import (
 )
 
 // DoCheck starts tls check
-func DoCheck(reader io.Reader) *Result {
+func DoCheck(reader io.Reader) (r *Result) {
+	r = &Result{Result: "OK"}
 	conf, err := LoadConfig(reader)
 	if err != nil {
-		return NewResult(err, nil)
+		r.SetError(err)
+		return
 	}
 
 	rawConn, err := connect(conf)
 	if err != nil {
-		return NewResult(err, nil)
+		r.SetError(err)
+		return
 	}
 	defer rawConn.Close()
+	tcpConn := rawConn.(*net.TCPConn)
+	r.SetConnectionInfo(tcpConn)
 
 	tlsConn, err := startTLS(conf, rawConn)
 	if err != nil {
-		return NewResult(err, nil)
+		r.SetError(err)
+		return
 	}
+	r.SetTLSInfo(tlsConn)
 
 	trustedChains, err := verify(conf, tlsConn)
 	if err != nil {
-		return NewResult(err, tlsConn)
+		r.SetError(err)
+		return
 	}
 
 	readBuf, err := roundTrip(conf, tlsConn)
 	if err != nil {
-		return NewResult(err, tlsConn)
+		r.SetError(err)
+		return
 	}
 	recvStr := string(readBuf)
 
-	result := NewResult(nil, tlsConn)
-	result.SetTrustedChains(trustedChains)
-	result.Recv = &recvStr
-	return result
+	r.SetTrustedChains(trustedChains)
+	r.Recv = &recvStr
+	return
 }
 
 func connect(conf *Config) (net.Conn, error) {
