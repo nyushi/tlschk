@@ -1,6 +1,9 @@
 package tlschk
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+	"crypto/x509"
+)
 
 // Result represents check result
 type Result struct {
@@ -11,9 +14,10 @@ type Result struct {
 }
 
 type tlsInfo struct {
-	Version       string        `json:"version"`
-	Cipher        string        `json:"cipher"`
-	ReceivedCerts []certificate `json:"received_certs"`
+	Version       string          `json:"version"`
+	Cipher        string          `json:"cipher"`
+	ReceivedCerts []certificate   `json:"received_certs"`
+	TrustedChains [][]certificate `json:"trusted_chains"`
 }
 
 type certificate struct {
@@ -43,4 +47,23 @@ func NewResult(e error, c connectionStateGetter) *Result {
 		}
 	}
 	return &r
+}
+
+// SetTrustedChains set trusted certificate chains
+func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
+	if r.TLSInfo == nil {
+		return
+	}
+
+	r.TLSInfo.TrustedChains = make([][]certificate, len(chains))
+	for i, chain := range chains {
+		r.TLSInfo.TrustedChains[i] = make([]certificate, len(chain))
+		for j, cert := range chain {
+			r.TLSInfo.TrustedChains[i][j] = certificate{
+				Subject:         cert.Subject.CommonName,
+				SubjectAltNames: cert.DNSNames,
+				Issuer:          cert.Issuer.CommonName,
+			}
+		}
+	}
 }
