@@ -15,21 +15,24 @@ import (
 type Result struct {
 	Result         string          `json:"result"`
 	Detail         string          `json:"detail"`
+	Elapsed        float64         `json:"elapsed"`
 	Recv           *string         `json:"recv,omitempty"`
 	TLSInfo        *tlsInfo        `json:"tls_info,omitempty"`
 	ConnectionInfo *connectionInfo `json:"connection_info,omitempty"`
 }
 
 type connectionInfo struct {
-	IPAddress string `json:"ip_address"`
-	Port      int    `json:"port"`
+	IPAddress      string  `json:"ip_address"`
+	Port           int     `json:"port"`
+	ElapsedConnect float64 `json:"elapsed_connect"`
 }
 
 type tlsInfo struct {
-	Version       string          `json:"version"`
-	Cipher        string          `json:"cipher"`
-	ReceivedCerts []certSummary   `json:"received_certs"`
-	TrustedChains [][]certSummary `json:"trusted_chains"`
+	Version          string          `json:"version"`
+	Cipher           string          `json:"cipher"`
+	ReceivedCerts    []certSummary   `json:"received_certs"`
+	TrustedChains    [][]certSummary `json:"trusted_chains"`
+	ElapsedHandshake float64         `json:"elapsed_handshake"`
 }
 
 type certSummary struct {
@@ -55,24 +58,25 @@ func (r *Result) SetError(e error) {
 }
 
 // SetConnectionInfo set connection information
-func (r *Result) SetConnectionInfo(c remoteAddrGetter) {
+func (r *Result) SetConnectionInfo(c remoteAddrGetter, elapsed float64) {
 	if c == nil {
 		return
 	}
 	host, port, _ := net.SplitHostPort(c.RemoteAddr().String())
 	portInt, _ := strconv.Atoi(port)
-	r.ConnectionInfo = &connectionInfo{IPAddress: host, Port: portInt}
+	r.ConnectionInfo = &connectionInfo{IPAddress: host, Port: portInt, ElapsedConnect: elapsed}
 }
 
 // SetTLSInfo set tlsinfo
-func (r *Result) SetTLSInfo(c connectionStateGetter) {
+func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 	if c == nil {
 		return
 	}
 	connState := c.ConnectionState()
 	r.TLSInfo = &tlsInfo{
-		Version: TLSVersionString(connState.Version),
-		Cipher:  TLSCipherString(connState.CipherSuite),
+		Version:          TLSVersionString(connState.Version),
+		Cipher:           TLSCipherString(connState.CipherSuite),
+		ElapsedHandshake: elapsed,
 	}
 
 	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
