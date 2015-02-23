@@ -57,11 +57,11 @@ func TestResultSetConnectionInfo(t *testing.T) {
 	}
 	a := "127.0.0.1"
 	if r.ConnectionInfo.IPAddress != a {
-		t.Errorf("r.ConnectionInfo.IPAddress is %q, want not %q", r.ConnectionInfo.IPAddress, a)
+		t.Errorf("r.ConnectionInfo.IPAddress is %q, want %q", r.ConnectionInfo.IPAddress, a)
 	}
 	p := 443
 	if r.ConnectionInfo.Port != p {
-		t.Errorf("r.ConnectionInfo.Port is %q, want not %q", r.ConnectionInfo.Port, p)
+		t.Errorf("r.ConnectionInfo.Port is %q, want %q", r.ConnectionInfo.Port, p)
 	}
 	e := float64(1)
 	if r.ConnectionInfo.ElapsedConnect != e {
