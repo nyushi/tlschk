@@ -9,15 +9,25 @@ import (
 	"time"
 )
 
+func elapsed(from time.Time) float64 {
+	return time.Now().Sub(from).Seconds()
+}
+
 // DoCheck starts tls check
 func DoCheck(reader io.Reader) (r *Result) {
 	r = &Result{Result: "OK"}
+	t := time.Now()
+	defer func() {
+		r.Elapsed = elapsed(t)
+	}()
 	conf, err := LoadConfig(reader)
 	if err != nil {
 		r.SetError(err)
 		return
 	}
 
+	var tt time.Time
+	tt = time.Now()
 	rawConn, err := connect(conf)
 	if err != nil {
 		r.SetError(err)
@@ -25,14 +35,15 @@ func DoCheck(reader io.Reader) (r *Result) {
 	}
 	defer rawConn.Close()
 	tcpConn := rawConn.(*net.TCPConn)
-	r.SetConnectionInfo(tcpConn)
+	r.SetConnectionInfo(tcpConn, elapsed(tt))
 
+	tt = time.Now()
 	tlsConn, err := startTLS(conf, rawConn)
 	if err != nil {
 		r.SetError(err)
 		return
 	}
-	r.SetTLSInfo(tlsConn)
+	r.SetTLSInfo(tlsConn, elapsed(tt))
 
 	trustedChains, err := verify(conf, tlsConn)
 	if err != nil {
