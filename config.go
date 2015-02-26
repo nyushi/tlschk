@@ -178,6 +178,17 @@ func (c *Config) ReadTimeout() time.Duration {
 	return time.Duration(*c.Connection.ReadTimeout) * time.Second
 }
 
+// NeedPlainRoundTrip is returns true when round trip with plain data is needed
+func (c *Config) NeedPlainRoundTrip() bool {
+	if c.Connection == nil {
+		return false
+	}
+	if c.Connection.SendPlain == nil {
+		return false
+	}
+	return c.Connection.SendPlain != nil
+}
+
 // PlainData returns byte data to sending tls socket
 func (c *Config) PlainData() []byte {
 	if c.Connection == nil {

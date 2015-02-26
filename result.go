@@ -13,18 +13,24 @@ import (
 
 // Result represents check result
 type Result struct {
-	Result         string          `json:"result"`
-	Detail         string          `json:"detail"`
-	Elapsed        float64         `json:"elapsed"`
-	Recv           *string         `json:"recv,omitempty"`
-	TLSInfo        *tlsInfo        `json:"tls_info,omitempty"`
-	ConnectionInfo *connectionInfo `json:"connection_info,omitempty"`
+	Result             string              `json:"result"`
+	Detail             string              `json:"detail"`
+	Elapsed            float64             `json:"elapsed"`
+	Recv               *string             `json:"recv,omitempty"`
+	TLSInfo            *tlsInfo            `json:"tls_info,omitempty"`
+	ConnectionInfo     *connectionInfo     `json:"connection_info,omitempty"`
+	PlainRoundTripInfo *plainRoundTripInfo `json:"plain_round_trip_info,omitempty"`
 }
 
 type connectionInfo struct {
 	IPAddress      string  `json:"ip_address"`
 	Port           int     `json:"port"`
 	ElapsedConnect float64 `json:"elapsed_connect"`
+}
+
+type plainRoundTripInfo struct {
+	Received              string  `json:"recv"`
+	ElapsedPlainRoundTrip float64 `json:"elapsed_plain_round_trip"`
 }
 
 type tlsInfo struct {
@@ -82,6 +88,14 @@ func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
 	for i, cert := range connState.PeerCertificates {
 		r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
+	}
+}
+
+// SetPlainRoundTripInfo set plainRoundTripInfo
+func (r *Result) SetPlainRoundTripInfo(data string, elapsed float64) {
+	r.PlainRoundTripInfo = &plainRoundTripInfo{
+		Received:              data,
+		ElapsedPlainRoundTrip: elapsed,
 	}
 }
 

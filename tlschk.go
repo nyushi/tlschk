@@ -37,9 +37,14 @@ func DoCheck(reader io.Reader) (r *Result) {
 	tcpConn := rawConn.(*net.TCPConn)
 	r.SetConnectionInfo(tcpConn, elapsed(tt))
 
-	if err := plainRoundTrip(conf, tcpConn); err != nil {
-		r.SetError(err)
-		return
+	if conf.NeedPlainRoundTrip() {
+		tt = time.Now()
+		plainData, err := plainRoundTrip(conf, tcpConn)
+		if err != nil {
+			r.SetError(err)
+			return
+		}
+		r.SetPlainRoundTripInfo(plainData, elapsed(tt))
 	}
 
 	tt = time.Now()
@@ -82,28 +87,27 @@ func connect(conf *Config) (net.Conn, error) {
 	return rawConn, nil
 }
 
-func plainRoundTrip(conf *Config, conn *net.TCPConn) error {
+func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 	errPrefix := "Roundtrip(plain data) error."
 	writeBuf := conf.PlainData()
-	if writeBuf != nil {
-		if _, err := conn.Write(writeBuf); err != nil {
-			return fmt.Errorf("%s Failed to write. %s", errPrefix, err.Error())
-		}
+	if _, err := conn.Write(writeBuf); err != nil {
+		return "", fmt.Errorf("%s Failed to write. %s", errPrefix, err.Error())
+	}
 
-		// discard plain data
-		// XXX read size is hardcoded for now
-		readBuf := make([]byte, 1024)
-		conn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
-		_, err := conn.Read(readBuf)
-		if err != nil {
-			if netErr, ok := err.(net.Error); ok {
-				if !netErr.Timeout() {
-					return fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
-				}
+	// discard plain data
+	// XXX read size is hardcoded for now
+	readBuf := make([]byte, 1024)
+	conn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
+	n, err := conn.Read(readBuf)
+	if err != nil {
+		if netErr, ok := err.(net.Error); ok {
+			if !netErr.Timeout() {
+				return "", fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 			}
 		}
 	}
-	return nil
+
+	return string(readBuf[:n]), nil
 }
 
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
