@@ -118,7 +118,6 @@ func (c *Config) Check() error {
 
 // TLSConfig returns tls.Config
 func (c *Config) TLSConfig() *tls.Config {
-	// TODO chipher and protocol specification
 	tlsConf := &tls.Config{}
 	tlsConf.InsecureSkipVerify = true
 	tlsConf.MinVersion, _ = c.MinVersion()
