@@ -85,6 +85,10 @@ func TestResultSetTLSInfo(t *testing.T) {
 		},
 	}
 	r := &Result{}
+	r.SetTLSInfo(nil, 1)
+	if r.TLSInfo != nil {
+		t.Errorf("r.TLSInfo is not nil, want nil")
+	}
 	r.SetTLSInfo(c, 1)
 	if r.TLSInfo == nil {
 		t.Errorf("r.TLSInfo is nil, want not nil")
