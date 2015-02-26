@@ -37,6 +37,11 @@ func DoCheck(reader io.Reader) (r *Result) {
 	tcpConn := rawConn.(*net.TCPConn)
 	r.SetConnectionInfo(tcpConn, elapsed(tt))
 
+	if err := plainRoundTrip(conf, tcpConn); err != nil {
+		r.SetError(err)
+		return
+	}
+
 	tt = time.Now()
 	tlsConn, err := startTLS(conf, rawConn)
 	if err != nil {
@@ -51,7 +56,7 @@ func DoCheck(reader io.Reader) (r *Result) {
 		return
 	}
 
-	readBuf, err := roundTrip(conf, tlsConn)
+	readBuf, err := tlsRoundTrip(conf, tlsConn)
 	if err != nil {
 		r.SetError(err)
 		return
@@ -74,29 +79,31 @@ func connect(conf *Config) (net.Conn, error) {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 
-	tcpConn := rawConn.(*net.TCPConn)
+	return rawConn, nil
+}
 
+func plainRoundTrip(conf *Config, conn *net.TCPConn) error {
+	errPrefix := "Roundtrip(plain data) error."
 	writeBuf := conf.PlainData()
 	if writeBuf != nil {
-		if _, err := rawConn.Write(writeBuf); err != nil {
-			return nil, fmt.Errorf("%s Failed to write. %s", errPrefix, err.Error())
+		if _, err := conn.Write(writeBuf); err != nil {
+			return fmt.Errorf("%s Failed to write. %s", errPrefix, err.Error())
 		}
 
 		// discard plain data
 		// XXX read size is hardcoded for now
 		readBuf := make([]byte, 1024)
-		tcpConn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
-		_, err = rawConn.Read(readBuf)
+		conn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
+		_, err := conn.Read(readBuf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok {
 				if !netErr.Timeout() {
-					return nil, fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
+					return fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 				}
 			}
 		}
-
 	}
-	return rawConn, nil
+	return nil
 }
 
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
@@ -172,7 +179,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	return trustedChains, nil
 }
 
-func roundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
+func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 	errPrefix := "Application protocol error."
 	writeBuf := conf.TLSData()
 	if writeBuf != nil {
