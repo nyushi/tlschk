@@ -120,7 +120,7 @@ func TestDoCheckConfigError(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatalf("recv is %q, want nil", *result.TLSRoundTripInfo)
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -146,7 +146,7 @@ func TestDoCheckRefused(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatalf("recv is %q, want nil", *result.TLSRoundTripInfo)
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -258,7 +258,7 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatalf("recv is %q, want nil", *result.TLSRoundTripInfo)
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
