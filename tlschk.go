@@ -61,15 +61,16 @@ func DoCheck(reader io.Reader) (r *Result) {
 		return
 	}
 
+	tt = time.Now()
 	readBuf, err := tlsRoundTrip(conf, tlsConn)
 	if err != nil {
 		r.SetError(err)
 		return
 	}
 	recvStr := string(readBuf)
+	r.SetTLSRoundTripInfo(recvStr, elapsed(tt))
 
 	r.SetTrustedChains(trustedChains)
-	r.Recv = &recvStr
 	return
 }
 

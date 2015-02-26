@@ -16,10 +16,10 @@ type Result struct {
 	Result             string              `json:"result"`
 	Detail             string              `json:"detail"`
 	Elapsed            float64             `json:"elapsed"`
-	Recv               *string             `json:"recv,omitempty"`
 	TLSInfo            *tlsInfo            `json:"tls_info,omitempty"`
 	ConnectionInfo     *connectionInfo     `json:"connection_info,omitempty"`
 	PlainRoundTripInfo *plainRoundTripInfo `json:"plain_round_trip_info,omitempty"`
+	TLSRoundTripInfo   *tlsRoundTripInfo   `json:"tls_round_trip_info,omitempty"`
 }
 
 type connectionInfo struct {
@@ -31,6 +31,11 @@ type connectionInfo struct {
 type plainRoundTripInfo struct {
 	Received              string  `json:"recv"`
 	ElapsedPlainRoundTrip float64 `json:"elapsed_plain_round_trip"`
+}
+
+type tlsRoundTripInfo struct {
+	Received            string  `json:"recv"`
+	ElapsedTLSRoundTrip float64 `json:"elapsed_tls_round_trip"`
 }
 
 type tlsInfo struct {
@@ -96,6 +101,14 @@ func (r *Result) SetPlainRoundTripInfo(data string, elapsed float64) {
 	r.PlainRoundTripInfo = &plainRoundTripInfo{
 		Received:              data,
 		ElapsedPlainRoundTrip: elapsed,
+	}
+}
+
+// SetTLSRoundTripInfo set tlsRoundTripInfo
+func (r *Result) SetTLSRoundTripInfo(data string, elapsed float64) {
+	r.TLSRoundTripInfo = &tlsRoundTripInfo{
+		Received:            data,
+		ElapsedTLSRoundTrip: elapsed,
 	}
 }
 
