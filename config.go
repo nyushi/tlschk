@@ -186,7 +186,10 @@ func (c *Config) NeedPlainRoundTrip() bool {
 	if c.Connection.SendPlain == nil {
 		return false
 	}
-	return c.Connection.SendPlain != nil
+	if *c.Connection.SendPlain == "" {
+		return false
+	}
+	return true
 }
 
 // PlainData returns byte data to sending tls socket

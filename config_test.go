@@ -281,7 +281,14 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 		t.Errorf("Config.NeedPlainRoundTrip is %q, want false", v)
 	}
 
-	d := "data"
+	d := ""
+	c.Connection.SendPlain = &d
+	v = c.NeedPlainRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedPlainRoundTrip is %q, want false", v)
+	}
+
+	d = "data"
 	c.Connection.SendPlain = &d
 	v = c.NeedPlainRoundTrip()
 	if v != true {
