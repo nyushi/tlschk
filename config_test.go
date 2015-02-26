@@ -267,6 +267,35 @@ func TestPlainData(t *testing.T) {
 	}
 }
 
+func TestNeedPlainRoundTrip(t *testing.T) {
+	c := Config{}
+
+	v := c.NeedPlainRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
+	}
+
+	c.Connection = &connectionOptions{}
+	v = c.NeedPlainRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
+	}
+
+	d := ""
+	c.Connection.SendPlain = &d
+	v = c.NeedPlainRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
+	}
+
+	d = "data"
+	c.Connection.SendPlain = &d
+	v = c.NeedPlainRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
+	}
+}
+
 func TestTLSData(t *testing.T) {
 	c := Config{}
 
@@ -315,13 +344,13 @@ func TestCheckTrusted(t *testing.T) {
 	c := Config{}
 	v := c.CheckTrusted()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %q, want true", v)
+		t.Errorf("Config.CheckTrusted is %t, want true", v)
 	}
 
 	c.Verify = &verifyOptions{}
 	v = c.CheckTrusted()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %q, want true", v)
+		t.Errorf("Config.CheckTrusted is %t, want true", v)
 	}
 
 	f := false
@@ -336,13 +365,13 @@ func TestRootCerts(t *testing.T) {
 	c := Config{}
 	v := c.RootCerts()
 	if v != nil {
-		t.Errorf("Config.RootCerts is %q, want nil", v)
+		t.Error("Config.RootCerts is not nil, want nil")
 	}
 
 	c.Verify = &verifyOptions{}
 	v = c.RootCerts()
 	if v != nil {
-		t.Errorf("Config.RootCerts is %q, want nil", v)
+		t.Error("Config.RootCerts is not nil, want nil")
 	}
 
 	c.Verify.RootCerts = []string{string(root.CertPEM)}

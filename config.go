@@ -118,7 +118,6 @@ func (c *Config) Check() error {
 
 // TLSConfig returns tls.Config
 func (c *Config) TLSConfig() *tls.Config {
-	// TODO chipher and protocol specification
 	tlsConf := &tls.Config{}
 	tlsConf.InsecureSkipVerify = true
 	tlsConf.MinVersion, _ = c.MinVersion()
@@ -176,6 +175,20 @@ func (c *Config) ReadTimeout() time.Duration {
 		return defaultTimeout
 	}
 	return time.Duration(*c.Connection.ReadTimeout) * time.Second
+}
+
+// NeedPlainRoundTrip is returns true when round trip with plain data is needed
+func (c *Config) NeedPlainRoundTrip() bool {
+	if c.Connection == nil {
+		return false
+	}
+	if c.Connection.SendPlain == nil {
+		return false
+	}
+	if *c.Connection.SendPlain == "" {
+		return false
+	}
+	return true
 }
 
 // PlainData returns byte data to sending tls socket

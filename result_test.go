@@ -46,7 +46,7 @@ func TestResultSetConnectionInfo(t *testing.T) {
 	r := &Result{}
 	r.SetConnectionInfo(nil, 1)
 	if r.ConnectionInfo != nil {
-		t.Errorf("r.ConnectionInfo is %q, want nil", r.ConnectionInfo)
+		t.Error("r.ConnectionInfo is not nil, want nil")
 	}
 
 	s := &raGetter{ra: dummyAddr{"", "127.0.0.1:443"}}
@@ -64,8 +64,8 @@ func TestResultSetConnectionInfo(t *testing.T) {
 		t.Errorf("r.ConnectionInfo.Port is %q, want %q", r.ConnectionInfo.Port, p)
 	}
 	e := float64(1)
-	if r.ConnectionInfo.ElapsedConnect != e {
-		t.Errorf("r.ConnectionInfo.Elapsed is %q, want %q", r.ConnectionInfo.ElapsedConnect, e)
+	if r.ConnectionInfo.Elapsed != e {
+		t.Errorf("r.ConnectionInfo.Elapsed is %f, want %f", r.ConnectionInfo.Elapsed, e)
 	}
 }
 
@@ -85,6 +85,10 @@ func TestResultSetTLSInfo(t *testing.T) {
 		},
 	}
 	r := &Result{}
+	r.SetTLSInfo(nil, 1)
+	if r.TLSInfo != nil {
+		t.Errorf("r.TLSInfo is not nil, want nil")
+	}
 	r.SetTLSInfo(c, 1)
 	if r.TLSInfo == nil {
 		t.Errorf("r.TLSInfo is nil, want not nil")
@@ -95,8 +99,8 @@ func TestResultSetTLSInfo(t *testing.T) {
 	if r.TLSInfo.Cipher != "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256" {
 		t.Errorf("r.TLSInfo.Cipher is %q not TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", r.TLSInfo.Cipher)
 	}
-	if r.TLSInfo.ElapsedHandshake != float64(1) {
-		t.Errorf("r.TLSInfo.Cipher is %q not %q", r.TLSInfo.Cipher, float64(1))
+	if r.TLSInfo.Elapsed != float64(1) {
+		t.Errorf("r.TLSInfo.Cipher is %q not %f", r.TLSInfo.Cipher, float64(1))
 	}
 }
 
@@ -105,7 +109,7 @@ func TestSetTrustedChains(t *testing.T) {
 	chains := [][]*x509.Certificate{[]*x509.Certificate{leaf.X509Cert, chain.X509Cert, root.X509Cert}}
 	r.SetTrustedChains(chains)
 	if r.TLSInfo != nil {
-		t.Errorf("r.TLSInfo is %q, want nil", chains)
+		t.Error("r.TLSInfo is not nil, want nil")
 	}
 
 	r.TLSInfo = &tlsInfo{}

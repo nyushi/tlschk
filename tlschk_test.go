@@ -119,8 +119,8 @@ func TestDoCheckConfigError(t *testing.T) {
 	if !strings.HasPrefix(result.Detail, prefix) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
-	if result.Recv != nil {
-		t.Fatalf("recv is %q, want nil", *result.Recv)
+	if result.TLSRoundTripInfo != nil {
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -145,8 +145,8 @@ func TestDoCheckRefused(t *testing.T) {
 	if !strings.HasPrefix(result.Detail, prefix) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
-	if result.Recv != nil {
-		t.Fatalf("recv is %q, want nil", *result.Recv)
+	if result.TLSRoundTripInfo != nil {
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -178,11 +178,11 @@ func TestDoCheckSuccess(t *testing.T) {
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
 	}
-	if result.Recv == nil {
+	if result.TLSRoundTripInfo == nil {
 		t.Fatal("recv is nil")
 	}
-	if *result.Recv != "" {
-		t.Fatalf("recv is %q, want \"\"", *result.Recv)
+	if result.TLSRoundTripInfo.Received != "" {
+		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -220,11 +220,11 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
 	}
-	if result.Recv == nil {
+	if result.TLSRoundTripInfo == nil {
 		t.Fatal("recv is nil")
 	}
-	if *result.Recv != "" {
-		t.Fatalf("recv is %q, want \"\"", *result.Recv)
+	if result.TLSRoundTripInfo.Received != "" {
+		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -257,8 +257,8 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 	if !strings.HasPrefix(result.Detail, prefix) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
-	if result.Recv != nil {
-		t.Fatalf("recv is %q, want nil", *result.Recv)
+	if result.TLSRoundTripInfo != nil {
+		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -421,11 +421,11 @@ func TestDoCheckReadData(t *testing.T) {
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
-	if result.Recv == nil {
+	if result.TLSRoundTripInfo == nil {
 		t.Fatalf("recv is nil")
 	}
 	recv := "test"
-	if *result.Recv != recv {
+	if result.TLSRoundTripInfo.Received != recv {
 		t.Fatalf("detail is %q, not %q", result.Detail, recv)
 	}
 }
@@ -464,11 +464,11 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
-	if result.Recv == nil {
+	if result.TLSRoundTripInfo == nil {
 		t.Fatalf("recv is nil")
 	}
 	recv := "t"
-	if *result.Recv != recv {
+	if result.TLSRoundTripInfo.Received != recv {
 		t.Fatalf("detail is %q, not %q", result.Detail, recv)
 	}
 }

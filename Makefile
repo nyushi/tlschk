@@ -5,7 +5,10 @@ TLSCHKR_DIR=cmd/tlschkr
 $(TLSCHKR_DIR)/tlschkr: $(TLSCHKR_DIR)/*.go $(SRC)
 	cd $(TLSCHKR_DIR) && go build && cd -
 
-test:
+vet:
+	go vet ./...
+
+test: vet
 	go test ./...
 
 $(COV_OUT): $(SRC)
@@ -21,4 +24,4 @@ test-cov-html: $(COV_OUT)
 clean:
 	rm -rf $(TLSCHKR_DIR)/tlschkr
 
-.PHONY: clean test test-cov test-cov-html
+.PHONY: clean test test-cov test-cov-html vet
