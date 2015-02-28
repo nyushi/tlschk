@@ -28,10 +28,11 @@ type Config struct {
 }
 
 type verifyOptions struct {
-	CheckServername    *string  `json:"check_servername"`
-	CheckTrustedByRoot *bool    `json:"check_trusted_by_root"`
-	CheckRevocation    *bool    `json:"check_revocation"`
-	RootCerts          []string `json:"root_certs"`
+	CheckServername      *string  `json:"check_servername"`
+	CheckTrustedByRoot   *bool    `json:"check_trusted_by_root"`
+	CheckRevocation      *bool    `json:"check_revocation"`
+	CheckNotAfterRemains *int64   `json:"check_not_after_remains"`
+	RootCerts            []string `json:"root_certs"`
 }
 
 type connectionOptions struct {
@@ -123,6 +124,7 @@ func (c *Config) TLSConfig() *tls.Config {
 	tlsConf.MinVersion, _ = c.MinVersion()
 	tlsConf.MaxVersion, _ = c.MaxVersion()
 	tlsConf.CipherSuites, _ = c.CipherSuites()
+	tlsConf.Time = c.CheckNotAfterRemains
 	return tlsConf
 }
 
@@ -244,6 +246,19 @@ func (c *Config) CheckRevocation() bool {
 		return false
 	}
 	return *c.Verify.CheckRevocation
+}
+
+// CheckNotAfterRemains returns time.Time to use verify
+func (c *Config) CheckNotAfterRemains() time.Time {
+	t := time.Now()
+	if c.Verify == nil {
+		return t
+	}
+	if c.Verify.CheckNotAfterRemains == nil {
+		return t
+	}
+	d := (time.Duration)(*c.Verify.CheckNotAfterRemains) * time.Hour * 24
+	return t.Add(d)
 }
 
 // RootCerts returns x509.Certificate slice

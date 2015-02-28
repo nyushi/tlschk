@@ -174,6 +174,11 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	for i, b := range revokeChains {
 		if !b {
 			// valid chain found
+			for _, cert := range chains[i] {
+				if !conf.CheckNotAfterRemains().Before(cert.NotAfter) {
+					return nil, fmt.Errorf("%s %s", errPrefix, "certificate expired")
+				}
+			}
 			trustedChains = append(trustedChains, chains[i])
 		}
 	}
@@ -181,6 +186,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	if len(trustedChains) == 0 {
 		return nil, fmt.Errorf("%s %s", errPrefix, "revoked")
 	}
+
 	return trustedChains, nil
 }
 

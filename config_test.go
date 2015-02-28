@@ -361,6 +361,28 @@ func TestCheckTrustedByRoot(t *testing.T) {
 	}
 }
 
+func TestCheckNotAfterRemains(t *testing.T) {
+	c := Config{}
+	now := time.Now()
+	v := c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds() > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds() > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
+	}
+
+	var day int64 = 1
+	c.Verify.CheckNotAfterRemains = &day
+	v = c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds()-24*60*60 > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not 1days after", v)
+	}
+}
+
 func TestRootCerts(t *testing.T) {
 	c := Config{}
 	v := c.RootCerts()

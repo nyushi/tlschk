@@ -504,3 +504,36 @@ func TestDoCheckInvalidChain(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 }
+
+func TestDoCheckExpired(t *testing.T) {
+	listened := make(chan struct{}, 1)
+	f := func(conn net.Conn, tlsConn *tls.Conn) {
+		tlsConn.Handshake()
+	}
+	go runServer(listened, chain, leaf, f)
+
+	<-listened
+
+	r := strings.NewReader(`
+{
+  "address": "127.0.0.1",
+  "port": 4443,
+  "verify": {
+    "check_trusted_by_root": false,
+    "check_not_after_remains": 1000
+  },
+  "connection": {
+    "read_timeout": 1,
+    "connect_timeout": 1
+  }
+}`)
+
+	result := DoCheck(r)
+	if result.Result != "NG" {
+		t.Error("result is not NG")
+	}
+	prefix := "TLS verify error."
+	if !strings.HasPrefix(result.Detail, prefix) {
+		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
+	}
+}
