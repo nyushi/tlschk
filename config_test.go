@@ -383,6 +383,27 @@ func TestCheckNotAfterRemains(t *testing.T) {
 	}
 }
 
+func TestCheckMinRSABitlen(t *testing.T) {
+	c := Config{}
+	v := c.CheckMinRSABitlen()
+	if v != 0 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.CheckMinRSABitlen()
+	if v != 0 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
+	}
+
+	var len = 1
+	c.Verify.CheckMinRSABitlen = &len
+	v = c.CheckMinRSABitlen()
+	if v != 1 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 1", v)
+	}
+}
+
 func TestRootCerts(t *testing.T) {
 	c := Config{}
 	v := c.RootCerts()

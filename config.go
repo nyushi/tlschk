@@ -32,6 +32,7 @@ type verifyOptions struct {
 	CheckTrustedByRoot   *bool    `json:"check_trusted_by_root"`
 	CheckRevocation      *bool    `json:"check_revocation"`
 	CheckNotAfterRemains *int64   `json:"check_not_after_remains"`
+	CheckMinRSABitlen    *int     `json:"check_min_rsa_bitlen"`
 	RootCerts            []string `json:"root_certs"`
 }
 
@@ -259,6 +260,17 @@ func (c *Config) CheckNotAfterRemains() time.Time {
 	}
 	d := (time.Duration)(*c.Verify.CheckNotAfterRemains) * time.Hour * 24
 	return t.Add(d)
+}
+
+// CheckMinRSABitlen returns min rsa bitlen
+func (c *Config) CheckMinRSABitlen() int {
+	if c.Verify == nil {
+		return 0
+	}
+	if c.Verify.CheckMinRSABitlen == nil {
+		return 0
+	}
+	return *c.Verify.CheckMinRSABitlen
 }
 
 // RootCerts returns x509.Certificate slice
