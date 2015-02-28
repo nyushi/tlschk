@@ -133,7 +133,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 		roots.AddCert(c)
 		rootAdded = true
 	}
-	if !conf.CheckTrusted() {
+	if !conf.CheckTrustedByRoot() {
 		i := len(connState.PeerCertificates) - 1
 		roots.AddCert(connState.PeerCertificates[i])
 		rootAdded = true

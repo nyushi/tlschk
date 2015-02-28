@@ -340,24 +340,24 @@ func TestRecvSize(t *testing.T) {
 	}
 }
 
-func TestCheckTrusted(t *testing.T) {
+func TestCheckTrustedByRoot(t *testing.T) {
 	c := Config{}
-	v := c.CheckTrusted()
+	v := c.CheckTrustedByRoot()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %t, want true", v)
+		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
 	c.Verify = &verifyOptions{}
-	v = c.CheckTrusted()
+	v = c.CheckTrustedByRoot()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %t, want true", v)
+		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
 	f := false
-	c.Verify.CheckTrusted = &f
-	v = c.CheckTrusted()
+	c.Verify.CheckTrustedByRoot = &f
+	v = c.CheckTrustedByRoot()
 	if v {
-		t.Errorf("Config.CheckTrusted is %v, want %v", v, f)
+		t.Errorf("Config.CheckTrustedByRoot is %v, want %v", v, f)
 	}
 }
 

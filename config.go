@@ -28,10 +28,10 @@ type Config struct {
 }
 
 type verifyOptions struct {
-	CheckServername *string  `json:"check_servername"`
-	CheckTrusted    *bool    `json:"check_trusted"`
-	CheckRevocation *bool    `json:"check_revocation"`
-	RootCerts       []string `json:"root_certs"`
+	CheckServername    *string  `json:"check_servername"`
+	CheckTrustedByRoot *bool    `json:"check_trusted_by_root"`
+	CheckRevocation    *bool    `json:"check_revocation"`
+	RootCerts          []string `json:"root_certs"`
 }
 
 type connectionOptions struct {
@@ -224,15 +224,15 @@ func (c *Config) RecvSize() int {
 	return *c.Connection.RecvSize
 }
 
-// CheckTrusted returns true if trusted check is enabled
-func (c *Config) CheckTrusted() bool {
+// CheckTrustedByRoot returns true if trusted check is enabled
+func (c *Config) CheckTrustedByRoot() bool {
 	if c.Verify == nil {
 		return true
 	}
-	if c.Verify.CheckTrusted == nil {
+	if c.Verify.CheckTrustedByRoot == nil {
 		return true
 	}
-	return *c.Verify.CheckTrusted
+	return *c.Verify.CheckTrustedByRoot
 }
 
 // CheckRevocation returns true if revocation check is enabled
