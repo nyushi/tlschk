@@ -199,6 +199,9 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 						invalid = true
 					}
 				}
+				if cert.SignatureAlgorithm == x509.SHA1WithRSA {
+					invalid = true
+				}
 			}
 			if !invalid {
 				trustedChains = append(trustedChains, chains[i])
