@@ -188,23 +188,26 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	for i, b := range revokeChains {
 		if !b {
 			// valid chain found
+			invalid := false
 			for _, cert := range chains[i] {
 				if !conf.CheckNotAfterRemains().Before(cert.NotAfter) {
-					return nil, fmt.Errorf("%s %s", errPrefix, "certificate expired")
+					invalid = true
 				}
 				if _, ok := cert.PublicKey.(*rsa.PublicKey); ok {
 					keylen, _ := getPublicKeySize(cert.PublicKey)
 					if keylen <= conf.CheckMinRSABitlen() {
-						return nil, fmt.Errorf("%s keylen is %d", errPrefix, keylen)
+						invalid = true
 					}
 				}
 			}
-			trustedChains = append(trustedChains, chains[i])
+			if !invalid {
+				trustedChains = append(trustedChains, chains[i])
+			}
 		}
 	}
 
 	if len(trustedChains) == 0 {
-		return nil, fmt.Errorf("%s %s", errPrefix, "revoked")
+		return nil, fmt.Errorf("%s %s", errPrefix, "invalid certificate")
 	}
 
 	return trustedChains, nil
