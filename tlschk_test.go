@@ -130,7 +130,7 @@ func TestDoCheckRefused(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -164,7 +164,7 @@ func TestDoCheckSuccess(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -204,7 +204,7 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -242,7 +242,7 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -277,7 +277,7 @@ func TestDoCheckServerNameMatch(t *testing.T) {
   "port": 4443,
   "verify": {
     "check_servername": "localhost",
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -308,7 +308,7 @@ func TestDoCheckServerNameNotMatch(t *testing.T) {
   "port": 4443,
   "verify": {
     "check_servername": "example.com",
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -339,7 +339,7 @@ func TestDoCheckTrustedOK(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": true,
+    "check_trusted_by_root": true,
     "root_certs": [%q]
   },
   "connection": {
@@ -372,7 +372,7 @@ func TestDoCheckTrustedNG(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": true
+    "check_trusted_by_root": true
   },
   "connection": {
     "read_timeout": 1,
@@ -405,7 +405,7 @@ func TestDoCheckReadData(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -447,7 +447,7 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": false
+    "check_trusted_by_root": false
   },
   "connection": {
     "read_timeout": 1,
@@ -487,7 +487,40 @@ func TestDoCheckInvalidChain(t *testing.T) {
   "address": "127.0.0.1",
   "port": 4443,
   "verify": {
-    "check_trusted": true
+    "check_trusted_by_root": true
+  },
+  "connection": {
+    "read_timeout": 1,
+    "connect_timeout": 1
+  }
+}`)
+
+	result := DoCheck(r)
+	if result.Result != "NG" {
+		t.Error("result is not NG")
+	}
+	prefix := "TLS verify error."
+	if !strings.HasPrefix(result.Detail, prefix) {
+		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
+	}
+}
+
+func TestDoCheckExpired(t *testing.T) {
+	listened := make(chan struct{}, 1)
+	f := func(conn net.Conn, tlsConn *tls.Conn) {
+		tlsConn.Handshake()
+	}
+	go runServer(listened, chain, leaf, f)
+
+	<-listened
+
+	r := strings.NewReader(`
+{
+  "address": "127.0.0.1",
+  "port": 4443,
+  "verify": {
+    "check_trusted_by_root": false,
+    "check_not_after_remains": 1000
   },
   "connection": {
     "read_timeout": 1,

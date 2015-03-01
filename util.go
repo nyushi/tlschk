@@ -1,6 +1,9 @@
 package tlschk
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+	"crypto/x509"
+)
 
 var (
 	tlsVersionUInt16s = []uint16{
@@ -46,6 +49,35 @@ var (
 		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
 	}
+
+	x509SignatureAlgorithms = []x509.SignatureAlgorithm{
+		x509.MD2WithRSA,
+		x509.MD5WithRSA,
+		x509.SHA1WithRSA,
+		x509.SHA256WithRSA,
+		x509.SHA384WithRSA,
+		x509.SHA512WithRSA,
+		x509.DSAWithSHA1,
+		x509.DSAWithSHA256,
+		x509.ECDSAWithSHA1,
+		x509.ECDSAWithSHA256,
+		x509.ECDSAWithSHA384,
+		x509.ECDSAWithSHA512,
+	}
+	x509SignatureAlgorithmStrings = []string{
+		"MD2WithRSA",
+		"MD5WithRSA",
+		"SHA1WithRSA",
+		"SHA256WithRSA",
+		"SHA384WithRSA",
+		"SHA512WithRSA",
+		"DSAWithSHA1",
+		"DSAWithSHA256",
+		"ECDSAWithSHA1",
+		"ECDSAWithSHA256",
+		"ECDSAWithSHA384",
+		"ECDSAWithSHA512",
+	}
 )
 
 // TLSVersionString returns version string from uint16 value
@@ -83,6 +115,26 @@ func TLSCipherInt(v string) uint16 {
 	for i, ver := range tlsCipherStrings {
 		if v == ver {
 			return tlsCipherUInt16s[i]
+		}
+	}
+	return 0
+}
+
+// X509SignatureAlgorithmString returns string from SignatureAlgorigm
+func X509SignatureAlgorithmString(v x509.SignatureAlgorithm) string {
+	for i, algo := range x509SignatureAlgorithms {
+		if v == algo {
+			return x509SignatureAlgorithmStrings[i]
+		}
+	}
+	return ""
+}
+
+// X509SignatureAlgorithm returns SignatureAlgorigm from string value
+func X509SignatureAlgorithm(v string) x509.SignatureAlgorithm {
+	for i, algo := range x509SignatureAlgorithmStrings {
+		if v == algo {
+			return x509SignatureAlgorithms[i]
 		}
 	}
 	return 0

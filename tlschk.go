@@ -1,8 +1,11 @@
 package tlschk
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -121,6 +124,17 @@ func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	return tlsConn, nil
 }
 
+func getPublicKeySize(pub interface{}) (sie int, err error) {
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
+		return pub.N.BitLen(), nil
+	case *ecdsa.PublicKey:
+		return pub.Curve.Params().BitSize, nil
+	}
+	return 0, errors.New("only RSA and ECDSA public keys supported")
+
+}
+
 func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	errPrefix := "TLS verify error."
 
@@ -133,7 +147,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 		roots.AddCert(c)
 		rootAdded = true
 	}
-	if !conf.CheckTrusted() {
+	if !conf.CheckTrustedByRoot() {
 		i := len(connState.PeerCertificates) - 1
 		roots.AddCert(connState.PeerCertificates[i])
 		rootAdded = true
@@ -174,13 +188,33 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 	for i, b := range revokeChains {
 		if !b {
 			// valid chain found
-			trustedChains = append(trustedChains, chains[i])
+			invalid := false
+			for _, cert := range chains[i] {
+				if !conf.CheckNotAfterRemains().Before(cert.NotAfter) {
+					invalid = true
+				}
+				if _, ok := cert.PublicKey.(*rsa.PublicKey); ok {
+					keylen, _ := getPublicKeySize(cert.PublicKey)
+					if keylen <= conf.CheckMinRSABitlen() {
+						invalid = true
+					}
+				}
+				for _, sigAlgo := range conf.SignatureAlgorithmBlacklist() {
+					if cert.SignatureAlgorithm == sigAlgo {
+						invalid = true
+					}
+				}
+			}
+			if !invalid {
+				trustedChains = append(trustedChains, chains[i])
+			}
 		}
 	}
 
 	if len(trustedChains) == 0 {
-		return nil, fmt.Errorf("%s %s", errPrefix, "revoked")
+		return nil, fmt.Errorf("%s %s", errPrefix, "invalid certificate")
 	}
+
 	return trustedChains, nil
 }
 

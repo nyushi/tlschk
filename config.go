@@ -28,10 +28,13 @@ type Config struct {
 }
 
 type verifyOptions struct {
-	CheckServername *string  `json:"check_servername"`
-	CheckTrusted    *bool    `json:"check_trusted"`
-	CheckRevocation *bool    `json:"check_revocation"`
-	RootCerts       []string `json:"root_certs"`
+	CheckServername             *string  `json:"check_servername"`
+	CheckTrustedByRoot          *bool    `json:"check_trusted_by_root"`
+	CheckRevocation             *bool    `json:"check_revocation"`
+	CheckNotAfterRemains        *int64   `json:"check_not_after_remains"`
+	CheckMinRSABitlen           *int     `json:"check_min_rsa_bitlen"`
+	SignatureAlgorithmBlacklist []string `json:"signature_algorithm_blacklist"`
+	RootCerts                   []string `json:"root_certs"`
 }
 
 type connectionOptions struct {
@@ -123,6 +126,7 @@ func (c *Config) TLSConfig() *tls.Config {
 	tlsConf.MinVersion, _ = c.MinVersion()
 	tlsConf.MaxVersion, _ = c.MaxVersion()
 	tlsConf.CipherSuites, _ = c.CipherSuites()
+	tlsConf.Time = c.CheckNotAfterRemains
 	return tlsConf
 }
 
@@ -224,15 +228,15 @@ func (c *Config) RecvSize() int {
 	return *c.Connection.RecvSize
 }
 
-// CheckTrusted returns true if trusted check is enabled
-func (c *Config) CheckTrusted() bool {
+// CheckTrustedByRoot returns true if trusted check is enabled
+func (c *Config) CheckTrustedByRoot() bool {
 	if c.Verify == nil {
 		return true
 	}
-	if c.Verify.CheckTrusted == nil {
+	if c.Verify.CheckTrustedByRoot == nil {
 		return true
 	}
-	return *c.Verify.CheckTrusted
+	return *c.Verify.CheckTrustedByRoot
 }
 
 // CheckRevocation returns true if revocation check is enabled
@@ -244,6 +248,51 @@ func (c *Config) CheckRevocation() bool {
 		return false
 	}
 	return *c.Verify.CheckRevocation
+}
+
+// CheckNotAfterRemains returns time.Time to use verify
+func (c *Config) CheckNotAfterRemains() time.Time {
+	t := time.Now()
+	if c.Verify == nil {
+		return t
+	}
+	if c.Verify.CheckNotAfterRemains == nil {
+		return t
+	}
+	d := (time.Duration)(*c.Verify.CheckNotAfterRemains) * time.Hour * 24
+	return t.Add(d)
+}
+
+// CheckMinRSABitlen returns min rsa bitlen
+func (c *Config) CheckMinRSABitlen() int {
+	if c.Verify == nil {
+		return 0
+	}
+	if c.Verify.CheckMinRSABitlen == nil {
+		return 0
+	}
+	return *c.Verify.CheckMinRSABitlen
+}
+
+// SignatureAlgorithmBlacklist returns blacklist slice of x509.SignatureAlgorithm
+func (c *Config) SignatureAlgorithmBlacklist() []x509.SignatureAlgorithm {
+	d := []x509.SignatureAlgorithm{
+		x509.MD2WithRSA,
+		x509.MD5WithRSA,
+	}
+	if c.Verify == nil {
+		return d
+	}
+
+	if c.Verify.SignatureAlgorithmBlacklist == nil {
+		return d
+	}
+
+	list := make([]x509.SignatureAlgorithm, len(c.Verify.SignatureAlgorithmBlacklist))
+	for i, v := range c.Verify.SignatureAlgorithmBlacklist {
+		list[i] = X509SignatureAlgorithm(v)
+	}
+	return list
 }
 
 // RootCerts returns x509.Certificate slice

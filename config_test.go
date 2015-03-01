@@ -3,6 +3,7 @@ package tlschk
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -340,24 +341,90 @@ func TestRecvSize(t *testing.T) {
 	}
 }
 
-func TestCheckTrusted(t *testing.T) {
+func TestCheckTrustedByRoot(t *testing.T) {
 	c := Config{}
-	v := c.CheckTrusted()
+	v := c.CheckTrustedByRoot()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %t, want true", v)
+		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
 	c.Verify = &verifyOptions{}
-	v = c.CheckTrusted()
+	v = c.CheckTrustedByRoot()
 	if !v {
-		t.Errorf("Config.CheckTrusted is %t, want true", v)
+		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
 	f := false
-	c.Verify.CheckTrusted = &f
-	v = c.CheckTrusted()
+	c.Verify.CheckTrustedByRoot = &f
+	v = c.CheckTrustedByRoot()
 	if v {
-		t.Errorf("Config.CheckTrusted is %v, want %v", v, f)
+		t.Errorf("Config.CheckTrustedByRoot is %v, want %v", v, f)
+	}
+}
+
+func TestCheckNotAfterRemains(t *testing.T) {
+	c := Config{}
+	now := time.Now()
+	v := c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds() > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds() > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
+	}
+
+	var day int64 = 1
+	c.Verify.CheckNotAfterRemains = &day
+	v = c.CheckNotAfterRemains()
+	if v.Sub(now).Seconds()-24*60*60 > 1 {
+		t.Errorf("Config.CheckNotAfterRemains returns %q, not 1days after", v)
+	}
+}
+
+func TestCheckMinRSABitlen(t *testing.T) {
+	c := Config{}
+	v := c.CheckMinRSABitlen()
+	if v != 0 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.CheckMinRSABitlen()
+	if v != 0 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
+	}
+
+	var len = 1
+	c.Verify.CheckMinRSABitlen = &len
+	v = c.CheckMinRSABitlen()
+	if v != 1 {
+		t.Errorf("Config.CheckMinRSABitlen returns %q, not 1", v)
+	}
+}
+
+func TestSignatureAlgorithmBlacklist(t *testing.T) {
+	c := Config{}
+	v := c.SignatureAlgorithmBlacklist()
+	if len(v) != 2 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.SignatureAlgorithmBlacklist()
+	if len(v) != 2 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
+	}
+
+	c.Verify.SignatureAlgorithmBlacklist = []string{"SHA1WithRSA"}
+	v = c.SignatureAlgorithmBlacklist()
+	if len(v) != 1 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q, not 1", len(v))
+	}
+	if v[0] != x509.SHA1WithRSA {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q, not %q", v[0], x509.SHA1WithRSA)
 	}
 }
 
