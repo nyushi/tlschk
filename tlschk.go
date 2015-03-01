@@ -199,8 +199,10 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 						invalid = true
 					}
 				}
-				if cert.SignatureAlgorithm == x509.SHA1WithRSA {
-					invalid = true
+				for _, sigAlgo := range conf.SignatureAlgorithmBlacklist() {
+					if cert.SignatureAlgorithm == sigAlgo {
+						invalid = true
+					}
 				}
 			}
 			if !invalid {

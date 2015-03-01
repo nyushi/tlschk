@@ -28,12 +28,13 @@ type Config struct {
 }
 
 type verifyOptions struct {
-	CheckServername      *string  `json:"check_servername"`
-	CheckTrustedByRoot   *bool    `json:"check_trusted_by_root"`
-	CheckRevocation      *bool    `json:"check_revocation"`
-	CheckNotAfterRemains *int64   `json:"check_not_after_remains"`
-	CheckMinRSABitlen    *int     `json:"check_min_rsa_bitlen"`
-	RootCerts            []string `json:"root_certs"`
+	CheckServername             *string  `json:"check_servername"`
+	CheckTrustedByRoot          *bool    `json:"check_trusted_by_root"`
+	CheckRevocation             *bool    `json:"check_revocation"`
+	CheckNotAfterRemains        *int64   `json:"check_not_after_remains"`
+	CheckMinRSABitlen           *int     `json:"check_min_rsa_bitlen"`
+	SignatureAlgorithmBlacklist []string `json:"signature_algorithm_blacklist"`
+	RootCerts                   []string `json:"root_certs"`
 }
 
 type connectionOptions struct {
@@ -271,6 +272,27 @@ func (c *Config) CheckMinRSABitlen() int {
 		return 0
 	}
 	return *c.Verify.CheckMinRSABitlen
+}
+
+// SignatureAlgorithmBlacklist returns blacklist slice of x509.SignatureAlgorithm
+func (c *Config) SignatureAlgorithmBlacklist() []x509.SignatureAlgorithm {
+	d := []x509.SignatureAlgorithm{
+		x509.MD2WithRSA,
+		x509.MD5WithRSA,
+	}
+	if c.Verify == nil {
+		return d
+	}
+
+	if c.Verify.SignatureAlgorithmBlacklist == nil {
+		return d
+	}
+
+	list := make([]x509.SignatureAlgorithm, len(c.Verify.SignatureAlgorithmBlacklist))
+	for i, v := range c.Verify.SignatureAlgorithmBlacklist {
+		list[i] = X509SignatureAlgorithm(v)
+	}
+	return list
 }
 
 // RootCerts returns x509.Certificate slice

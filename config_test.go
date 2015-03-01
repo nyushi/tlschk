@@ -3,6 +3,7 @@ package tlschk
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -401,6 +402,29 @@ func TestCheckMinRSABitlen(t *testing.T) {
 	v = c.CheckMinRSABitlen()
 	if v != 1 {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 1", v)
+	}
+}
+
+func TestSignatureAlgorithmBlacklist(t *testing.T) {
+	c := Config{}
+	v := c.SignatureAlgorithmBlacklist()
+	if len(v) != 2 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
+	}
+
+	c.Verify = &verifyOptions{}
+	v = c.SignatureAlgorithmBlacklist()
+	if len(v) != 2 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
+	}
+
+	c.Verify.SignatureAlgorithmBlacklist = []string{"SHA1WithRSA"}
+	v = c.SignatureAlgorithmBlacklist()
+	if len(v) != 1 {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q, not 1", len(v))
+	}
+	if v[0] != x509.SHA1WithRSA {
+		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q, not %q", v[0], x509.SHA1WithRSA)
 	}
 }
 
