@@ -34,35 +34,39 @@ func TestLoadConfigRequired(t *testing.T) {
 			errors.New("Config error. Failed to load config json. unexpected end of JSON input"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1"}`),
+			strings.NewReader(`{}`),
+			errors.New("Config error. connect is required"),
+		},
+		{
+			strings.NewReader(`{"connect": {"address": "127.0.0.1"}}`),
 			errors.New("Config error. port is required"),
 		},
 		{
-			strings.NewReader(`{"port": 443}`),
+			strings.NewReader(`{"connect": {"port": 443}}`),
 			errors.New("Config error. address is required"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 0}}`),
+			strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443, "ip_version": 0}}`),
 			errors.New("Config error. ip_version allows 4 or 6"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"cipher_suites": ["no_such_cipher1", "no_such_cipher2"]}}`),
+			strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443}, "handshake": {"cipher_suites": ["no_such_cipher1", "no_such_cipher2"]}}`),
 			errors.New("Config error. no_such_cipher1 is not supported, no_such_cipher2 is not supported"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"min_version": "no_such_version"}}`),
+			strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443}, "handshake": {"min_version": "no_such_version"}}`),
 			errors.New("Config error. no_such_version is not supported"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "handshake": {"max_version": "no_such_version"}}`),
+			strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443}, "handshake": {"max_version": "no_such_version"}}`),
 			errors.New("Config error. no_such_version is not supported"),
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 4}}`),
+			strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443, "ip_version": 4}}`),
 			nil,
 		},
 		{
-			strings.NewReader(`{"address": "127.0.0.1", "port": 443, "connection": {"ip_version": 6}}`),
+			strings.NewReader(`{"connect":{"address": "127.0.0.1", "port": 443, "ip_version": 6}}`),
 			nil,
 		},
 	}
@@ -79,28 +83,29 @@ func TestLoadConfigRequired(t *testing.T) {
 		}
 	}
 
-	c, err := LoadConfig(strings.NewReader(`{"address": "127.0.0.1", "port": 443}`))
+	c, err := LoadConfig(strings.NewReader(`{"connect": {"address": "127.0.0.1", "port": 443}}`))
 	if err != nil {
 		t.Errorf("LoadConfig returns error %q", err)
 	}
-	if *c.Address != "127.0.0.1" {
-		t.Errorf("LoadConfig loaded address is %q, want 127.0.0.1", *c.Address)
+	if *c.Connect.Address != "127.0.0.1" {
+		t.Errorf("LoadConfig loaded address is %q, want 127.0.0.1", *c.Connect.Address)
 	}
-	if *c.Port != 443 {
-		t.Errorf("LoadConfig loaded port is %q, want 127.0.0.1", *c.Port)
+	if *c.Connect.Port != 443 {
+		t.Errorf("LoadConfig loaded port is %q, want 127.0.0.1", *c.Connect.Port)
 	}
 }
 
 func TestCheck(t *testing.T) {
 	addr := "127.0.0.1"
 	port := 443
-	v := verifyOptions{
-		RootCerts: []string{""},
-	}
 	c := Config{
-		Address: &addr,
-		Port:    &port,
-		Verify:  &v,
+		Connect: &connectOptions{
+			Address: &addr,
+			Port:    &port,
+		},
+		Handshake: &handshakeOptions{
+			RootCerts: []string{""},
+		},
 	}
 
 	b := &pem.Block{Type: "CERTIFICATE", Bytes: []byte("abc")}
@@ -110,7 +115,7 @@ func TestCheck(t *testing.T) {
 	var err error
 	var prefix string
 	for _, pemStr := range []string{"", string(root.KeyPEM), invalidCertPEM.String()} {
-		c.Verify.RootCerts = []string{pemStr}
+		c.Handshake.RootCerts = []string{pemStr}
 		err = c.Check()
 		if err == nil {
 			t.Fatal("Config.Check not returns error")
@@ -137,14 +142,14 @@ func TestServerNameForVerify(t *testing.T) {
 		t.Errorf("Config.ServerNameForVerify is %q, want nil", v)
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.ServerNameForVerify()
 	if v != nil {
 		t.Errorf("Config.ServerNameForVerify is %q, want nil", v)
 	}
 
 	n := "name"
-	c.Verify.CheckServername = &n
+	c.Handshake.CheckServername = &n
 	v = c.ServerNameForVerify()
 	if *v != n {
 		t.Errorf("Config.ServerNameForVerify is %q, want %q", *v, n)
@@ -164,7 +169,7 @@ func TestDialNetwork(t *testing.T) {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
 	}
 
-	c.Connection = &connectionOptions{}
+	c.Connect = &connectOptions{}
 	v = c.DialNetwork()
 	if v != want {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
@@ -173,7 +178,7 @@ func TestDialNetwork(t *testing.T) {
 	var ver int64
 	ver = 4
 	want = tcp4
-	c.Connection.IPVersion = &ver
+	c.Connect.IPVersion = &ver
 	v = c.DialNetwork()
 	if v != want {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
@@ -181,7 +186,7 @@ func TestDialNetwork(t *testing.T) {
 
 	ver = 6
 	want = tcp6
-	c.Connection.IPVersion = &ver
+	c.Connect.IPVersion = &ver
 	v = c.DialNetwork()
 	if v != want {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
@@ -189,7 +194,7 @@ func TestDialNetwork(t *testing.T) {
 
 	ver = 7
 	want = tcp
-	c.Connection.IPVersion = &ver
+	c.Connect.IPVersion = &ver
 	v = c.DialNetwork()
 	if v != tcp {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
@@ -205,14 +210,14 @@ func TestConnectTimeout(t *testing.T) {
 		t.Errorf("Config.ConnectTimeout is %q, want %q", v, to)
 	}
 
-	c.Connection = &connectionOptions{}
+	c.Connect = &connectOptions{}
 	v = c.ConnectTimeout()
 	if v != to {
 		t.Errorf("Config.ConnectTimeout is %q, want %q", v, to)
 	}
 
 	var tt int64 = 1
-	c.Connection.ConnectTimeout = &tt
+	c.Connect.Timeout = &tt
 	v = c.ConnectTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
@@ -220,24 +225,49 @@ func TestConnectTimeout(t *testing.T) {
 	}
 }
 
-func TestReadTimeout(t *testing.T) {
+func TestPlainReadTimeout(t *testing.T) {
 	c := Config{}
 	to := time.Second * 10
 
-	v := c.ReadTimeout()
+	v := c.PlainReadTimeout()
 	if v != to {
 		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
 	}
 
-	c.Connection = &connectionOptions{}
-	v = c.ReadTimeout()
+	c.PlainRoundTrip = &roundTripOptions{}
+	v = c.PlainReadTimeout()
 	if v != to {
 		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
 	}
 
 	var tt int64 = 1
-	c.Connection.ReadTimeout = &tt
-	v = c.ReadTimeout()
+	c.PlainRoundTrip.ReadTimeout = &tt
+	v = c.PlainReadTimeout()
+	d := time.Duration(tt) * time.Second
+	if v != d {
+		t.Errorf("Config.ReadTimeout is %q, want %q", v, d)
+
+	}
+}
+
+func TestTLSReadTimeout(t *testing.T) {
+	c := Config{}
+	to := time.Second * 10
+
+	v := c.TLSReadTimeout()
+	if v != to {
+		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	}
+
+	c.TLSRoundTrip = &roundTripOptions{}
+	v = c.TLSReadTimeout()
+	if v != to {
+		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	}
+
+	var tt int64 = 1
+	c.TLSRoundTrip.ReadTimeout = &tt
+	v = c.TLSReadTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
 		t.Errorf("Config.ReadTimeout is %q, want %q", v, d)
@@ -253,14 +283,14 @@ func TestPlainData(t *testing.T) {
 		t.Errorf("Config.PlainData is %q, want nil", v)
 	}
 
-	c.Connection = &connectionOptions{}
+	c.PlainRoundTrip = &roundTripOptions{}
 	v = c.PlainData()
 	if v != nil {
 		t.Errorf("Config.PlainData is %q, want nil", v)
 	}
 
 	d := "data"
-	c.Connection.SendPlain = &d
+	c.PlainRoundTrip.Send = &d
 	v = c.PlainData()
 	if string(v) != d {
 		t.Errorf("Config.PlainData is %q, want %q", v, d)
@@ -276,21 +306,21 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
 	}
 
-	c.Connection = &connectionOptions{}
+	c.PlainRoundTrip = &roundTripOptions{}
 	v = c.NeedPlainRoundTrip()
 	if v != false {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
 	}
 
 	d := ""
-	c.Connection.SendPlain = &d
+	c.PlainRoundTrip.Send = &d
 	v = c.NeedPlainRoundTrip()
 	if v != false {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
 	}
 
 	d = "data"
-	c.Connection.SendPlain = &d
+	c.PlainRoundTrip.Send = &d
 	v = c.NeedPlainRoundTrip()
 	if v != true {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
@@ -305,14 +335,14 @@ func TestTLSData(t *testing.T) {
 		t.Errorf("Config.TLSData is %q, want nil", v)
 	}
 
-	c.Connection = &connectionOptions{}
+	c.TLSRoundTrip = &roundTripOptions{}
 	v = c.TLSData()
 	if v != nil {
 		t.Errorf("Config.TLSData is %q, want nil", v)
 	}
 
 	d := "data"
-	c.Connection.SendTLS = &d
+	c.TLSRoundTrip.Send = &d
 	v = c.TLSData()
 	if string(v) != d {
 		t.Errorf("Config.TLSData is %q, want %q", v, d)
@@ -320,22 +350,42 @@ func TestTLSData(t *testing.T) {
 	}
 }
 
-func TestRecvSize(t *testing.T) {
+func TestPlainRecvSize(t *testing.T) {
 	c := Config{}
-	v := c.RecvSize()
+	v := c.PlainRecvSize()
 	if v != 1024 {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
 	}
 
-	c.Connection = &connectionOptions{}
-	v = c.RecvSize()
+	c.PlainRoundTrip = &roundTripOptions{}
+	v = c.PlainRecvSize()
 	if v != 1024 {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
 	}
 
 	rs := 1
-	c.Connection.RecvSize = &rs
-	v = c.RecvSize()
+	c.PlainRoundTrip.RecvSize = &rs
+	v = c.PlainRecvSize()
+	if v != rs {
+		t.Errorf("Config.RecvSize is %q, want %q", v, rs)
+	}
+}
+func TestTLSRecvSize(t *testing.T) {
+	c := Config{}
+	v := c.TLSRecvSize()
+	if v != 1024 {
+		t.Errorf("Config.RecvSize is %q, want 1024", v)
+	}
+
+	c.TLSRoundTrip = &roundTripOptions{}
+	v = c.TLSRecvSize()
+	if v != 1024 {
+		t.Errorf("Config.RecvSize is %q, want 1024", v)
+	}
+
+	rs := 1
+	c.TLSRoundTrip.RecvSize = &rs
+	v = c.TLSRecvSize()
 	if v != rs {
 		t.Errorf("Config.RecvSize is %q, want %q", v, rs)
 	}
@@ -348,14 +398,14 @@ func TestCheckTrustedByRoot(t *testing.T) {
 		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.CheckTrustedByRoot()
 	if !v {
 		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
 	f := false
-	c.Verify.CheckTrustedByRoot = &f
+	c.Handshake.CheckTrustedByRoot = &f
 	v = c.CheckTrustedByRoot()
 	if v {
 		t.Errorf("Config.CheckTrustedByRoot is %v, want %v", v, f)
@@ -370,14 +420,14 @@ func TestCheckNotAfterRemains(t *testing.T) {
 		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.CheckNotAfterRemains()
 	if v.Sub(now).Seconds() > 1 {
 		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
 	}
 
 	var day int64 = 1
-	c.Verify.CheckNotAfterRemains = &day
+	c.Handshake.CheckNotAfterRemains = &day
 	v = c.CheckNotAfterRemains()
 	if v.Sub(now).Seconds()-24*60*60 > 1 {
 		t.Errorf("Config.CheckNotAfterRemains returns %q, not 1days after", v)
@@ -391,14 +441,14 @@ func TestCheckMinRSABitlen(t *testing.T) {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.CheckMinRSABitlen()
 	if v != 0 {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
 	}
 
 	var len = 1
-	c.Verify.CheckMinRSABitlen = &len
+	c.Handshake.CheckMinRSABitlen = &len
 	v = c.CheckMinRSABitlen()
 	if v != 1 {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 1", v)
@@ -412,13 +462,13 @@ func TestSignatureAlgorithmBlacklist(t *testing.T) {
 		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.SignatureAlgorithmBlacklist()
 	if len(v) != 2 {
 		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
 	}
 
-	c.Verify.SignatureAlgorithmBlacklist = []string{"SHA1WithRSA"}
+	c.Handshake.SignatureAlgorithmBlacklist = []string{"SHA1WithRSA"}
 	v = c.SignatureAlgorithmBlacklist()
 	if len(v) != 1 {
 		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q, not 1", len(v))
@@ -435,13 +485,13 @@ func TestRootCerts(t *testing.T) {
 		t.Error("Config.RootCerts is not nil, want nil")
 	}
 
-	c.Verify = &verifyOptions{}
+	c.Handshake = &handshakeOptions{}
 	v = c.RootCerts()
 	if v != nil {
 		t.Error("Config.RootCerts is not nil, want nil")
 	}
 
-	c.Verify.RootCerts = []string{string(root.CertPEM)}
+	c.Handshake.RootCerts = []string{string(root.CertPEM)}
 	v = c.RootCerts()
 	if len(v) != 1 {
 		t.Errorf("Config.RootCerts size is %q, want 1", len(v))

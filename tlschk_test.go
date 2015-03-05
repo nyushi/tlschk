@@ -127,14 +127,14 @@ func TestDoCheckConfigError(t *testing.T) {
 func TestDoCheckRefused(t *testing.T) {
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
     "read_timeout": 1,
-    "connect_timeout": 1
+    "connect_timeout": 1,
+    "address": "127.0.0.1",
+    "port": 4443
   }
 }`)
 	result := DoCheck(r)
@@ -161,14 +161,14 @@ func TestDoCheckSuccess(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
     "read_timeout": 1,
-    "connect_timeout": 1
+    "connect_timeout": 1,
+  "address": "127.0.0.1",
+  "port": 4443
   }
 }`)
 	result := DoCheck(r)
@@ -201,15 +201,20 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
+    "connect_timeout": 1
+  },
+  "plain_round_trip": {
     "read_timeout": 1,
-    "connect_timeout": 1,
-    "send_plain": "STARTTLS\r\n"
+    "send": "STARTTLS\r\n"
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -239,14 +244,16 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -273,15 +280,17 @@ func TestDoCheckServerNameMatch(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_servername": "localhost",
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -304,15 +313,17 @@ func TestDoCheckServerNameNotMatch(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_servername": "example.com",
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -336,15 +347,17 @@ func TestDoCheckTrustedOK(t *testing.T) {
 
 	j := fmt.Sprintf(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true,
     "root_certs": [%q]
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`, chain.CertPEM)
 	r := strings.NewReader(j)
@@ -369,14 +382,16 @@ func TestDoCheckTrustedNG(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 
@@ -402,14 +417,17 @@ func TestDoCheckReadData(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1,
+    "recv_size": 4
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
     "recv_size": 4
   }
 }`)
@@ -444,14 +462,16 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
+    "connect_timeout": 1
+  },
+  "tls_round_trip": {
     "read_timeout": 1,
-    "connect_timeout": 1,
     "recv_size": 4
   }
 }`)
@@ -484,14 +504,17 @@ func TestDoCheckInvalidChain(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
+    "recv_size": 4
   }
 }`)
 
@@ -516,15 +539,18 @@ func TestDoCheckExpired(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false,
     "check_not_after_remains": 1000
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
+    "recv_size": 4
   }
 }`)
 

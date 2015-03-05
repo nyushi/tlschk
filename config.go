@@ -20,14 +20,23 @@ const (
 
 // Config represents tlschk configuration
 type Config struct {
-	Address    *string            `json:"address"`
-	Port       *int               `json:"port"`
-	Connection *connectionOptions `json:"connection"`
-	Verify     *verifyOptions     `json:"verify"`
-	Handshake  *handshakeOptions  `json:"handshake"`
+	Connect        *connectOptions   `json:"connect"`
+	PlainRoundTrip *roundTripOptions `json:"plain_round_trip"`
+	Handshake      *handshakeOptions `json:"handshake"`
+	TLSRoundTrip   *roundTripOptions `json:"tls_round_trip"`
 }
 
-type verifyOptions struct {
+type connectOptions struct {
+	Address   *string `json:"address"`
+	Port      *int    `json:"port"`
+	IPVersion *int64  `json:"ip_version"`
+	Timeout   *int64  `json:"timeout"`
+}
+
+type handshakeOptions struct {
+	CipherSuites                []string `json:"cipher_suites"`
+	MinVersion                  *string  `json:"min_version"`
+	MaxVersion                  *string  `json:"max_version"`
 	CheckServername             *string  `json:"check_servername"`
 	CheckTrustedByRoot          *bool    `json:"check_trusted_by_root"`
 	CheckRevocation             *bool    `json:"check_revocation"`
@@ -37,19 +46,11 @@ type verifyOptions struct {
 	RootCerts                   []string `json:"root_certs"`
 }
 
-type connectionOptions struct {
-	IPVersion      *int64  `json:"ip_version"`
-	ConnectTimeout *int64  `json:"connect_timeout"`
-	ReadTimeout    *int64  `json:"read_timeout"`
-	SendPlain      *string `json:"send_plain"`
-	SendTLS        *string `json:"send_tls"`
-	RecvSize       *int    `json:"recv_size"`
-}
-
-type handshakeOptions struct {
-	CipherSuites []string `json:"cipher_suites"`
-	MinVersion   *string  `json:"min_version"`
-	MaxVersion   *string  `json:"max_version"`
+type roundTripOptions struct {
+	Send        *string `json:"send"`
+	ReadTimeout *int64  `json:"read_timeout"`
+	RecvSize    *int    `json:"recv_size"`
+	RecvUntil   *string `json:"recv_until"`
 }
 
 // LoadConfig returns configuratoin
@@ -76,10 +77,13 @@ func LoadConfig(reader io.Reader) (*Config, error) {
 
 // Check returns error when configuration is invalid
 func (c *Config) Check() error {
-	if c.Address == nil {
+	if c.Connect == nil {
+		return errors.New("connect is required")
+	}
+	if c.Connect.Address == nil {
 		return errors.New("address is required")
 	}
-	if c.Port == nil {
+	if c.Connect.Port == nil {
 		return errors.New("port is required")
 	}
 	_, errs := c.rootCerts()
@@ -94,11 +98,9 @@ func (c *Config) Check() error {
 		return errors.New(strings.Join(errStrs, ", "))
 	}
 
-	if c.Connection != nil {
-		if c.Connection.IPVersion != nil {
-			if *c.Connection.IPVersion != 4 && *c.Connection.IPVersion != 6 {
-				return errors.New("ip_version allows 4 or 6")
-			}
+	if c.Connect.IPVersion != nil {
+		if *c.Connect.IPVersion != 4 && *c.Connect.IPVersion != 6 {
+			return errors.New("ip_version allows 4 or 6")
 		}
 	}
 
@@ -132,25 +134,25 @@ func (c *Config) TLSConfig() *tls.Config {
 
 // ServerNameForVerify returns servername to use verification
 func (c *Config) ServerNameForVerify() *string {
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return nil
 	}
-	if c.Verify.CheckServername == nil {
+	if c.Handshake.CheckServername == nil {
 		return nil
 	}
-	return c.Verify.CheckServername
+	return c.Handshake.CheckServername
 }
 
 // DialNetwork returns network string for dial
 func (c *Config) DialNetwork() string {
 	base := "tcp"
-	if c.Connection == nil {
+	if c.Connect == nil {
 		return base
 	}
-	if c.Connection.IPVersion == nil {
+	if c.Connect.IPVersion == nil {
 		return base
 	}
-	switch *c.Connection.IPVersion {
+	switch *c.Connect.IPVersion {
 	case 4:
 		return base + "4"
 	case 6:
@@ -161,35 +163,46 @@ func (c *Config) DialNetwork() string {
 
 // ConnectTimeout returns timeout(sec) for connection
 func (c *Config) ConnectTimeout() time.Duration {
-	if c.Connection == nil {
+	if c.Connect == nil {
 		return defaultTimeout
 	}
-	if c.Connection.ConnectTimeout == nil {
+	if c.Connect.Timeout == nil {
 		return defaultTimeout
 	}
-	return time.Duration(*c.Connection.ConnectTimeout) * time.Second
+	return time.Duration(*c.Connect.Timeout) * time.Second
 }
 
-// ReadTimeout returns timeout(sec) for connection
-func (c *Config) ReadTimeout() time.Duration {
-	if c.Connection == nil {
+// PlainReadTimeout returns timeout(sec) for connection
+func (c *Config) PlainReadTimeout() time.Duration {
+	if c.PlainRoundTrip == nil {
 		return defaultTimeout
 	}
-	if c.Connection.ReadTimeout == nil {
+	if c.PlainRoundTrip.ReadTimeout == nil {
 		return defaultTimeout
 	}
-	return time.Duration(*c.Connection.ReadTimeout) * time.Second
+	return time.Duration(*c.PlainRoundTrip.ReadTimeout) * time.Second
+}
+
+// TLSReadTimeout returns timeout(sec) for connection
+func (c *Config) TLSReadTimeout() time.Duration {
+	if c.TLSRoundTrip == nil {
+		return defaultTimeout
+	}
+	if c.TLSRoundTrip.ReadTimeout == nil {
+		return defaultTimeout
+	}
+	return time.Duration(*c.TLSRoundTrip.ReadTimeout) * time.Second
 }
 
 // NeedPlainRoundTrip is returns true when round trip with plain data is needed
 func (c *Config) NeedPlainRoundTrip() bool {
-	if c.Connection == nil {
+	if c.PlainRoundTrip == nil {
 		return false
 	}
-	if c.Connection.SendPlain == nil {
+	if c.PlainRoundTrip.Send == nil {
 		return false
 	}
-	if *c.Connection.SendPlain == "" {
+	if *c.PlainRoundTrip.Send == "" {
 		return false
 	}
 	return true
@@ -197,81 +210,92 @@ func (c *Config) NeedPlainRoundTrip() bool {
 
 // PlainData returns byte data to sending tls socket
 func (c *Config) PlainData() []byte {
-	if c.Connection == nil {
+	if c.PlainRoundTrip == nil {
 		return nil
 	}
-	if c.Connection.SendPlain == nil {
+	if c.PlainRoundTrip.Send == nil {
 		return nil
 	}
-	return []byte(*c.Connection.SendPlain)
+	return []byte(*c.PlainRoundTrip.Send)
 }
 
 // TLSData returns byte data to sending tls socket
 func (c *Config) TLSData() []byte {
-	if c.Connection == nil {
+	if c.TLSRoundTrip == nil {
 		return nil
 	}
-	if c.Connection.SendTLS == nil {
+	if c.TLSRoundTrip.Send == nil {
 		return nil
 	}
-	return []byte(*c.Connection.SendTLS)
+	return []byte(*c.TLSRoundTrip.Send)
 }
 
-// RecvSize returns buffer size of response
-func (c *Config) RecvSize() int {
-	if c.Connection == nil {
+// PlainRecvSize returns buffer size of response
+func (c *Config) PlainRecvSize() int {
+	if c.PlainRoundTrip == nil {
 		return defaultRecvSize
 	}
-	if c.Connection.RecvSize == nil {
+	if c.PlainRoundTrip.RecvSize == nil {
 		return defaultRecvSize
 	}
-	return *c.Connection.RecvSize
+	return *c.PlainRoundTrip.RecvSize
+}
+
+// TLSRecvSize returns buffer size of response
+func (c *Config) TLSRecvSize() int {
+	if c.TLSRoundTrip == nil {
+		return defaultRecvSize
+	}
+	if c.TLSRoundTrip.RecvSize == nil {
+		return defaultRecvSize
+	}
+	return *c.TLSRoundTrip.RecvSize
 }
 
 // CheckTrustedByRoot returns true if trusted check is enabled
 func (c *Config) CheckTrustedByRoot() bool {
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return true
 	}
-	if c.Verify.CheckTrustedByRoot == nil {
+	if c.Handshake.CheckTrustedByRoot == nil {
 		return true
 	}
-	return *c.Verify.CheckTrustedByRoot
+	return *c.Handshake.CheckTrustedByRoot
 }
 
 // CheckRevocation returns true if revocation check is enabled
 func (c *Config) CheckRevocation() bool {
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return false
 	}
-	if c.Verify.CheckRevocation == nil {
+	if c.Handshake.CheckRevocation == nil {
 		return false
 	}
-	return *c.Verify.CheckRevocation
+	return *c.Handshake.CheckRevocation
 }
 
 // CheckNotAfterRemains returns time.Time to use verify
 func (c *Config) CheckNotAfterRemains() time.Time {
 	t := time.Now()
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return t
 	}
-	if c.Verify.CheckNotAfterRemains == nil {
+	if c.Handshake.CheckNotAfterRemains == nil {
 		return t
 	}
-	d := (time.Duration)(*c.Verify.CheckNotAfterRemains) * time.Hour * 24
+	d := (time.Duration)(*c.Handshake.CheckNotAfterRemains) * time.Hour * 24
 	return t.Add(d)
 }
 
 // CheckMinRSABitlen returns min rsa bitlen
 func (c *Config) CheckMinRSABitlen() int {
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return 0
 	}
-	if c.Verify.CheckMinRSABitlen == nil {
+	if c.Handshake.CheckMinRSABitlen == nil {
 		return 0
 	}
-	return *c.Verify.CheckMinRSABitlen
+	return *c.Handshake.CheckMinRSABitlen
 }
 
 // SignatureAlgorithmBlacklist returns blacklist slice of x509.SignatureAlgorithm
@@ -280,16 +304,16 @@ func (c *Config) SignatureAlgorithmBlacklist() []x509.SignatureAlgorithm {
 		x509.MD2WithRSA,
 		x509.MD5WithRSA,
 	}
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return d
 	}
 
-	if c.Verify.SignatureAlgorithmBlacklist == nil {
+	if c.Handshake.SignatureAlgorithmBlacklist == nil {
 		return d
 	}
 
-	list := make([]x509.SignatureAlgorithm, len(c.Verify.SignatureAlgorithmBlacklist))
-	for i, v := range c.Verify.SignatureAlgorithmBlacklist {
+	list := make([]x509.SignatureAlgorithm, len(c.Handshake.SignatureAlgorithmBlacklist))
+	for i, v := range c.Handshake.SignatureAlgorithmBlacklist {
 		list[i] = X509SignatureAlgorithm(v)
 	}
 	return list
@@ -303,15 +327,15 @@ func (c *Config) RootCerts() []*x509.Certificate {
 
 func (c *Config) rootCerts() ([]*x509.Certificate, []error) {
 	errs := []error{}
-	if c.Verify == nil {
+	if c.Handshake == nil {
 		return nil, errs
 	}
-	if c.Verify.RootCerts == nil {
+	if c.Handshake.RootCerts == nil {
 		return nil, errs
 	}
 
-	certs := make([]*x509.Certificate, len(c.Verify.RootCerts))
-	for i, p := range c.Verify.RootCerts {
+	certs := make([]*x509.Certificate, len(c.Handshake.RootCerts))
+	for i, p := range c.Handshake.RootCerts {
 		c, err := loadPEMCert(p)
 		errs = append(errs, err)
 		if err != nil {

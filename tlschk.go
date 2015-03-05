@@ -81,7 +81,7 @@ func connect(conf *Config) (net.Conn, error) {
 	errPrefix := "Network error."
 	rawConn, err := net.DialTimeout(
 		conf.DialNetwork(),
-		fmt.Sprintf("%s:%d", *conf.Address, *conf.Port),
+		fmt.Sprintf("%s:%d", *conf.Connect.Address, *conf.Connect.Port),
 		conf.ConnectTimeout(),
 	)
 	if err != nil {
@@ -101,7 +101,7 @@ func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 	// discard plain data
 	// XXX read size is hardcoded for now
 	readBuf := make([]byte, 1024)
-	conn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
+	conn.SetReadDeadline(time.Now().Add(conf.PlainReadTimeout()))
 	n, err := conn.Read(readBuf)
 	if err != nil {
 		if netErr, ok := err.(net.Error); ok {
@@ -117,7 +117,7 @@ func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	errPrefix := "TLS error."
 	tlsConn := tls.Client(conn, conf.TLSConfig())
-	tlsConn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
+	tlsConn.SetReadDeadline(time.Now().Add(conf.TLSReadTimeout()))
 	if err := tlsConn.Handshake(); err != nil {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
@@ -225,13 +225,13 @@ func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 		tlsConn.Write(writeBuf)
 	}
 
-	readBuf := make([]byte, conf.RecvSize())
+	readBuf := make([]byte, conf.TLSRecvSize())
 	totalRead := 0
 	for {
-		tlsConn.SetReadDeadline(time.Now().Add(conf.ReadTimeout()))
+		tlsConn.SetReadDeadline(time.Now().Add(conf.TLSReadTimeout()))
 		n, err := tlsConn.Read(readBuf[totalRead:])
 		totalRead += n
-		if totalRead >= conf.RecvSize() {
+		if totalRead >= conf.TLSRecvSize() {
 			break
 		}
 		if err != nil {
