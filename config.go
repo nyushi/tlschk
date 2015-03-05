@@ -230,6 +230,28 @@ func (c *Config) TLSData() []byte {
 	return []byte(*c.TLSRoundTrip.Send)
 }
 
+// PlainRecvUntil returns byte data
+func (c *Config) PlainRecvUntil() []byte {
+	if c.PlainRoundTrip == nil {
+		return nil
+	}
+	if c.PlainRoundTrip.RecvUntil == nil {
+		return nil
+	}
+	return []byte(*c.PlainRoundTrip.RecvUntil)
+}
+
+// TLSRecvUntil returns byte data
+func (c *Config) TLSRecvUntil() []byte {
+	if c.TLSRoundTrip == nil {
+		return nil
+	}
+	if c.TLSRoundTrip.RecvUntil == nil {
+		return nil
+	}
+	return []byte(*c.TLSRoundTrip.RecvUntil)
+}
+
 // PlainRecvSize returns buffer size of response
 func (c *Config) PlainRecvSize() int {
 	if c.PlainRoundTrip == nil {

@@ -298,6 +298,29 @@ func TestPlainData(t *testing.T) {
 	}
 }
 
+func TestPlainRecvUntil(t *testing.T) {
+	c := Config{}
+
+	v := c.PlainRecvUntil()
+	if v != nil {
+		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
+	}
+
+	c.PlainRoundTrip = &roundTripOptions{}
+	v = c.PlainRecvUntil()
+	if v != nil {
+		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
+	}
+
+	d := "data"
+	c.PlainRoundTrip.RecvUntil = &d
+	v = c.PlainRecvUntil()
+	if string(v) != d {
+		t.Errorf("Config.PlainRecvUntil is %q, want %q", v, d)
+
+	}
+}
+
 func TestNeedPlainRoundTrip(t *testing.T) {
 	c := Config{}
 
@@ -346,6 +369,29 @@ func TestTLSData(t *testing.T) {
 	v = c.TLSData()
 	if string(v) != d {
 		t.Errorf("Config.TLSData is %q, want %q", v, d)
+
+	}
+}
+
+func TestTLSRecvUntil(t *testing.T) {
+	c := Config{}
+
+	v := c.TLSRecvUntil()
+	if v != nil {
+		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
+	}
+
+	c.TLSRoundTrip = &roundTripOptions{}
+	v = c.TLSRecvUntil()
+	if v != nil {
+		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
+	}
+
+	d := "data"
+	c.TLSRoundTrip.RecvUntil = &d
+	v = c.TLSRecvUntil()
+	if string(v) != d {
+		t.Errorf("Config.TLSRecvUntil is %q, want %q", v, d)
 
 	}
 }
