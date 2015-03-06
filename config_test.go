@@ -346,6 +346,22 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 	if v != true {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
 	}
+
+	c.PlainRoundTrip.Send = nil
+	var to int64 = 1
+	c.PlainRoundTrip.ReadTimeout = &to
+	v = c.NeedPlainRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
+	}
+
+	c.PlainRoundTrip.ReadTimeout = nil
+	ru := "data"
+	c.PlainRoundTrip.RecvUntil = &ru
+	v = c.NeedPlainRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
+	}
 }
 
 func TestTLSData(t *testing.T) {
@@ -398,6 +414,23 @@ func TestNeedTLSRoundTrip(t *testing.T) {
 	if v != true {
 		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
 	}
+
+	c.TLSRoundTrip.Send = nil
+	var to int64 = 1
+	c.TLSRoundTrip.ReadTimeout = &to
+	v = c.NeedTLSRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
+	}
+
+	c.TLSRoundTrip.ReadTimeout = nil
+	ru := "data"
+	c.TLSRoundTrip.RecvUntil = &ru
+	v = c.NeedTLSRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
+	}
+
 }
 
 func TestTLSRecvUntil(t *testing.T) {
