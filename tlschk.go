@@ -17,16 +17,29 @@ func elapsed(from time.Time) float64 {
 }
 
 // DoCheck starts tls check
-func DoCheck(reader io.Reader) (r *Result) {
-	r = &Result{Result: "OK"}
+func DoCheck(reader io.Reader) *Result {
+	r := &Result{Result: "OK"}
+	conf, err := LoadConfig(reader)
+	if err != nil {
+		r.SetError(err)
+		return r
+	}
+	return DoCheckByConfig(conf)
+}
+
+// DoCheckByConfig starts tls check
+func DoCheckByConfig(conf *Config) *Result {
+	r := &Result{Result: "OK"}
+
 	t := time.Now()
 	defer func() {
 		r.Elapsed = elapsed(t)
 	}()
-	conf, err := LoadConfig(reader)
+
+	err := conf.Check()
 	if err != nil {
 		r.SetError(err)
-		return
+		return r
 	}
 
 	var tt time.Time
@@ -34,7 +47,7 @@ func DoCheck(reader io.Reader) (r *Result) {
 	rawConn, err := connect(conf)
 	if err != nil {
 		r.SetError(err)
-		return
+		return r
 	}
 	defer rawConn.Close()
 	tcpConn := rawConn.(*net.TCPConn)
@@ -45,7 +58,7 @@ func DoCheck(reader io.Reader) (r *Result) {
 		plainData, err := plainRoundTrip(conf, tcpConn)
 		if err != nil {
 			r.SetError(err)
-			return
+			return r
 		}
 		r.SetPlainRoundTripInfo(plainData, elapsed(tt))
 	}
@@ -54,14 +67,14 @@ func DoCheck(reader io.Reader) (r *Result) {
 	tlsConn, err := startTLS(conf, rawConn)
 	if err != nil {
 		r.SetError(err)
-		return
+		return r
 	}
 	r.SetTLSInfo(tlsConn, elapsed(tt))
 
 	trustedChains, err := verify(conf, tlsConn)
 	if err != nil {
 		r.SetError(err)
-		return
+		return r
 	}
 
 	if conf.NeedTLSRoundTrip() {
@@ -69,13 +82,13 @@ func DoCheck(reader io.Reader) (r *Result) {
 		readBuf, err := tlsRoundTrip(conf, tlsConn)
 		if err != nil {
 			r.SetError(err)
-			return
+			return r
 		}
 		recvStr := string(readBuf)
 		r.SetTLSRoundTripInfo(recvStr, elapsed(tt))
 	}
 	r.SetTrustedChains(trustedChains)
-	return
+	return r
 }
 
 func connect(conf *Config) (net.Conn, error) {
