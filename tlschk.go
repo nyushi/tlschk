@@ -64,15 +64,16 @@ func DoCheck(reader io.Reader) (r *Result) {
 		return
 	}
 
-	tt = time.Now()
-	readBuf, err := tlsRoundTrip(conf, tlsConn)
-	if err != nil {
-		r.SetError(err)
-		return
+	if conf.NeedTLSRoundTrip() {
+		tt = time.Now()
+		readBuf, err := tlsRoundTrip(conf, tlsConn)
+		if err != nil {
+			r.SetError(err)
+			return
+		}
+		recvStr := string(readBuf)
+		r.SetTLSRoundTripInfo(recvStr, elapsed(tt))
 	}
-	recvStr := string(readBuf)
-	r.SetTLSRoundTripInfo(recvStr, elapsed(tt))
-
 	r.SetTrustedChains(trustedChains)
 	return
 }
@@ -117,7 +118,7 @@ func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	errPrefix := "TLS error."
 	tlsConn := tls.Client(conn, conf.TLSConfig())
-	tlsConn.SetReadDeadline(time.Now().Add(conf.TLSReadTimeout()))
+	tlsConn.SetReadDeadline(time.Now().Add(defaultHandshakeTimeout))
 	if err := tlsConn.Handshake(); err != nil {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}

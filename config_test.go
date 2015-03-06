@@ -227,17 +227,16 @@ func TestConnectTimeout(t *testing.T) {
 
 func TestPlainReadTimeout(t *testing.T) {
 	c := Config{}
-	to := time.Second * 10
 
 	v := c.PlainReadTimeout()
-	if v != to {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	if v != 0 {
+		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
 	}
 
 	c.PlainRoundTrip = &roundTripOptions{}
 	v = c.PlainReadTimeout()
-	if v != to {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	if v != 0 {
+		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
 	}
 
 	var tt int64 = 1
@@ -245,24 +244,23 @@ func TestPlainReadTimeout(t *testing.T) {
 	v = c.PlainReadTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, d)
+		t.Errorf("Config.PlainReadTimeout is %q, want %q", v, d)
 
 	}
 }
 
 func TestTLSReadTimeout(t *testing.T) {
 	c := Config{}
-	to := time.Second * 10
 
 	v := c.TLSReadTimeout()
-	if v != to {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	if v != 0 {
+		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
 	}
 
 	c.TLSRoundTrip = &roundTripOptions{}
 	v = c.TLSReadTimeout()
-	if v != to {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, to)
+	if v != 0 {
+		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
 	}
 
 	var tt int64 = 1
@@ -270,7 +268,7 @@ func TestTLSReadTimeout(t *testing.T) {
 	v = c.TLSReadTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
-		t.Errorf("Config.ReadTimeout is %q, want %q", v, d)
+		t.Errorf("Config.TLSReadTimeout is %q, want %q", v, d)
 
 	}
 }
@@ -370,6 +368,35 @@ func TestTLSData(t *testing.T) {
 	if string(v) != d {
 		t.Errorf("Config.TLSData is %q, want %q", v, d)
 
+	}
+}
+
+func TestNeedTLSRoundTrip(t *testing.T) {
+	c := Config{}
+
+	v := c.NeedTLSRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want false", v)
+	}
+
+	c.TLSRoundTrip = &roundTripOptions{}
+	v = c.NeedTLSRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want false", v)
+	}
+
+	d := ""
+	c.TLSRoundTrip.Send = &d
+	v = c.NeedTLSRoundTrip()
+	if v != false {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want false", v)
+	}
+
+	d = "data"
+	c.TLSRoundTrip.Send = &d
+	v = c.NeedTLSRoundTrip()
+	if v != true {
+		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
 	}
 }
 

@@ -167,8 +167,8 @@ func TestDoCheckSuccess(t *testing.T) {
   "connect": {
     "read_timeout": 1,
     "connect_timeout": 1,
-  "address": "127.0.0.1",
-  "port": 4443
+    "address": "127.0.0.1",
+    "port": 4443
   }
 }`)
 	result := DoCheck(r)
@@ -177,12 +177,6 @@ func TestDoCheckSuccess(t *testing.T) {
 	}
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
-	}
-	if result.TLSRoundTripInfo == nil {
-		t.Fatal("recv is nil")
-	}
-	if result.TLSRoundTripInfo.Received != "" {
-		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -212,9 +206,6 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
   "plain_round_trip": {
     "read_timeout": 1,
     "send": "STARTTLS\r\n"
-  },
-  "tls_round_trip": {
-    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -224,12 +215,6 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
 	}
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
-	}
-	if result.TLSRoundTripInfo == nil {
-		t.Fatal("recv is nil")
-	}
-	if result.TLSRoundTripInfo.Received != "" {
-		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -251,9 +236,6 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
     "address": "127.0.0.1",
     "port": 4443,
     "connect_timeout": 1
-  },
-  "tls_round_trip": {
-    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -263,9 +245,6 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 	prefix := "TLS error."
 	if !strings.HasPrefix(result.Detail, prefix) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
-	}
-	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
 	}
 }
 

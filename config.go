@@ -14,15 +14,17 @@ import (
 )
 
 const (
-	defaultTimeout  = time.Second * 10
-	defaultRecvSize = 1024
+	defaultReadTimeout      = 0
+	defaultConnectTimeout   = 10 * time.Second
+	defaultHandshakeTimeout = 10 * time.Second
+	defaultRecvSize         = 1024
 )
 
 // Config represents tlschk configuration
 type Config struct {
 	Connect        *connectOptions   `json:"connect"`
 	PlainRoundTrip *roundTripOptions `json:"plain_round_trip"`
-	Handshake      *handshakeOptions `json:"handshake"`
+	Handshake      *handshakeOptions `json:"handshake"` // TODO: make configurable
 	TLSRoundTrip   *roundTripOptions `json:"tls_round_trip"`
 }
 
@@ -164,10 +166,10 @@ func (c *Config) DialNetwork() string {
 // ConnectTimeout returns timeout(sec) for connection
 func (c *Config) ConnectTimeout() time.Duration {
 	if c.Connect == nil {
-		return defaultTimeout
+		return defaultConnectTimeout
 	}
 	if c.Connect.Timeout == nil {
-		return defaultTimeout
+		return defaultConnectTimeout
 	}
 	return time.Duration(*c.Connect.Timeout) * time.Second
 }
@@ -175,10 +177,10 @@ func (c *Config) ConnectTimeout() time.Duration {
 // PlainReadTimeout returns timeout(sec) for connection
 func (c *Config) PlainReadTimeout() time.Duration {
 	if c.PlainRoundTrip == nil {
-		return defaultTimeout
+		return defaultReadTimeout
 	}
 	if c.PlainRoundTrip.ReadTimeout == nil {
-		return defaultTimeout
+		return defaultReadTimeout
 	}
 	return time.Duration(*c.PlainRoundTrip.ReadTimeout) * time.Second
 }
@@ -186,10 +188,10 @@ func (c *Config) PlainReadTimeout() time.Duration {
 // TLSReadTimeout returns timeout(sec) for connection
 func (c *Config) TLSReadTimeout() time.Duration {
 	if c.TLSRoundTrip == nil {
-		return defaultTimeout
+		return defaultReadTimeout
 	}
 	if c.TLSRoundTrip.ReadTimeout == nil {
-		return defaultTimeout
+		return defaultReadTimeout
 	}
 	return time.Duration(*c.TLSRoundTrip.ReadTimeout) * time.Second
 }
@@ -199,13 +201,16 @@ func (c *Config) NeedPlainRoundTrip() bool {
 	if c.PlainRoundTrip == nil {
 		return false
 	}
-	if c.PlainRoundTrip.Send == nil {
-		return false
+	if c.PlainData() != nil {
+		return true
 	}
-	if *c.PlainRoundTrip.Send == "" {
-		return false
+	if c.PlainReadTimeout() != 0 {
+		return true
 	}
-	return true
+	if c.PlainRecvUntil() != nil {
+		return true
+	}
+	return false
 }
 
 // PlainData returns byte data to sending tls socket
@@ -216,7 +221,27 @@ func (c *Config) PlainData() []byte {
 	if c.PlainRoundTrip.Send == nil {
 		return nil
 	}
+	if *c.PlainRoundTrip.Send == "" {
+		return nil
+	}
 	return []byte(*c.PlainRoundTrip.Send)
+}
+
+// NeedTLSRoundTrip is returns true when round trip with plain data is needed
+func (c *Config) NeedTLSRoundTrip() bool {
+	if c.TLSRoundTrip == nil {
+		return false
+	}
+	if c.TLSData() != nil {
+		return true
+	}
+	if c.TLSReadTimeout() != 0 {
+		return true
+	}
+	if c.TLSRecvUntil() != nil {
+		return true
+	}
+	return false
 }
 
 // TLSData returns byte data to sending tls socket
@@ -225,6 +250,9 @@ func (c *Config) TLSData() []byte {
 		return nil
 	}
 	if c.TLSRoundTrip.Send == nil {
+		return nil
+	}
+	if *c.TLSRoundTrip.Send == "" {
 		return nil
 	}
 	return []byte(*c.TLSRoundTrip.Send)
