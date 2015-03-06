@@ -99,11 +99,11 @@ func TestCheck(t *testing.T) {
 	addr := "127.0.0.1"
 	port := 443
 	c := Config{
-		Connect: &connectOptions{
+		Connect: &ConnectOptions{
 			Address: &addr,
 			Port:    &port,
 		},
-		Handshake: &handshakeOptions{
+		Handshake: &HandshakeOptions{
 			RootCerts: []string{""},
 		},
 	}
@@ -142,7 +142,7 @@ func TestServerNameForVerify(t *testing.T) {
 		t.Errorf("Config.ServerNameForVerify is %q, want nil", v)
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.ServerNameForVerify()
 	if v != nil {
 		t.Errorf("Config.ServerNameForVerify is %q, want nil", v)
@@ -169,7 +169,7 @@ func TestDialNetwork(t *testing.T) {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
 	}
 
-	c.Connect = &connectOptions{}
+	c.Connect = &ConnectOptions{}
 	v = c.DialNetwork()
 	if v != want {
 		t.Errorf("Config.DialNetwork is %q, want %q", v, want)
@@ -210,7 +210,7 @@ func TestConnectTimeout(t *testing.T) {
 		t.Errorf("Config.ConnectTimeout is %q, want %q", v, to)
 	}
 
-	c.Connect = &connectOptions{}
+	c.Connect = &ConnectOptions{}
 	v = c.ConnectTimeout()
 	if v != to {
 		t.Errorf("Config.ConnectTimeout is %q, want %q", v, to)
@@ -233,7 +233,7 @@ func TestPlainReadTimeout(t *testing.T) {
 		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
 	}
 
-	c.PlainRoundTrip = &roundTripOptions{}
+	c.PlainRoundTrip = &RoundTripOptions{}
 	v = c.PlainReadTimeout()
 	if v != 0 {
 		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
@@ -257,7 +257,7 @@ func TestTLSReadTimeout(t *testing.T) {
 		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
 	}
 
-	c.TLSRoundTrip = &roundTripOptions{}
+	c.TLSRoundTrip = &RoundTripOptions{}
 	v = c.TLSReadTimeout()
 	if v != 0 {
 		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
@@ -281,7 +281,7 @@ func TestPlainData(t *testing.T) {
 		t.Errorf("Config.PlainData is %q, want nil", v)
 	}
 
-	c.PlainRoundTrip = &roundTripOptions{}
+	c.PlainRoundTrip = &RoundTripOptions{}
 	v = c.PlainData()
 	if v != nil {
 		t.Errorf("Config.PlainData is %q, want nil", v)
@@ -304,7 +304,7 @@ func TestPlainRecvUntil(t *testing.T) {
 		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
 	}
 
-	c.PlainRoundTrip = &roundTripOptions{}
+	c.PlainRoundTrip = &RoundTripOptions{}
 	v = c.PlainRecvUntil()
 	if v != nil {
 		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
@@ -327,7 +327,7 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
 	}
 
-	c.PlainRoundTrip = &roundTripOptions{}
+	c.PlainRoundTrip = &RoundTripOptions{}
 	v = c.NeedPlainRoundTrip()
 	if v != false {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want false", v)
@@ -372,7 +372,7 @@ func TestTLSData(t *testing.T) {
 		t.Errorf("Config.TLSData is %q, want nil", v)
 	}
 
-	c.TLSRoundTrip = &roundTripOptions{}
+	c.TLSRoundTrip = &RoundTripOptions{}
 	v = c.TLSData()
 	if v != nil {
 		t.Errorf("Config.TLSData is %q, want nil", v)
@@ -395,7 +395,7 @@ func TestNeedTLSRoundTrip(t *testing.T) {
 		t.Errorf("Config.NeedTLSRoundTrip is %t, want false", v)
 	}
 
-	c.TLSRoundTrip = &roundTripOptions{}
+	c.TLSRoundTrip = &RoundTripOptions{}
 	v = c.NeedTLSRoundTrip()
 	if v != false {
 		t.Errorf("Config.NeedTLSRoundTrip is %t, want false", v)
@@ -441,7 +441,7 @@ func TestTLSRecvUntil(t *testing.T) {
 		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
 	}
 
-	c.TLSRoundTrip = &roundTripOptions{}
+	c.TLSRoundTrip = &RoundTripOptions{}
 	v = c.TLSRecvUntil()
 	if v != nil {
 		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
@@ -463,7 +463,7 @@ func TestPlainRecvSize(t *testing.T) {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
 	}
 
-	c.PlainRoundTrip = &roundTripOptions{}
+	c.PlainRoundTrip = &RoundTripOptions{}
 	v = c.PlainRecvSize()
 	if v != 1024 {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
@@ -483,7 +483,7 @@ func TestTLSRecvSize(t *testing.T) {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
 	}
 
-	c.TLSRoundTrip = &roundTripOptions{}
+	c.TLSRoundTrip = &RoundTripOptions{}
 	v = c.TLSRecvSize()
 	if v != 1024 {
 		t.Errorf("Config.RecvSize is %q, want 1024", v)
@@ -504,7 +504,7 @@ func TestCheckTrustedByRoot(t *testing.T) {
 		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.CheckTrustedByRoot()
 	if !v {
 		t.Errorf("Config.CheckTrustedByRoot is %t, want true", v)
@@ -526,7 +526,7 @@ func TestCheckNotAfterRemains(t *testing.T) {
 		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.CheckNotAfterRemains()
 	if v.Sub(now).Seconds() > 1 {
 		t.Errorf("Config.CheckNotAfterRemains returns %q, not now", v)
@@ -547,7 +547,7 @@ func TestCheckMinRSABitlen(t *testing.T) {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.CheckMinRSABitlen()
 	if v != 0 {
 		t.Errorf("Config.CheckMinRSABitlen returns %q, not 0", v)
@@ -568,7 +568,7 @@ func TestSignatureAlgorithmBlacklist(t *testing.T) {
 		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.SignatureAlgorithmBlacklist()
 	if len(v) != 2 {
 		t.Errorf("Config.SignatureAlgorithmBlacklist returns %q signatures, not 2", len(v))
@@ -591,7 +591,7 @@ func TestRootCerts(t *testing.T) {
 		t.Error("Config.RootCerts is not nil, want nil")
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v = c.RootCerts()
 	if v != nil {
 		t.Error("Config.RootCerts is not nil, want nil")
@@ -617,7 +617,7 @@ func TestCipherSuites(t *testing.T) {
 		t.Errorf("Config.CipherSuites returns %q, not nil", errs)
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v, errs = c.CipherSuites()
 	if v != nil {
 		t.Errorf("Config.CipherSuites returns %q, not nil", v)
@@ -655,7 +655,7 @@ func TestMinVersion(t *testing.T) {
 		t.Errorf("Config.MinVersion returns %q, want nil", err.Error())
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v, err = c.MinVersion()
 	if v != 0 {
 		t.Errorf("Config.MinVersion returns %q, want 0", v)
@@ -698,7 +698,7 @@ func TestMaxVersion(t *testing.T) {
 		t.Errorf("Config.MaxVersion returns %q, want nil", err.Error())
 	}
 
-	c.Handshake = &handshakeOptions{}
+	c.Handshake = &HandshakeOptions{}
 	v, err = c.MaxVersion()
 	if v != 0 {
 		t.Errorf("Config.MaxVersion returns %q, want 0", v)

@@ -22,20 +22,22 @@ const (
 
 // Config represents tlschk configuration
 type Config struct {
-	Connect        *connectOptions   `json:"connect"`
-	PlainRoundTrip *roundTripOptions `json:"plain_round_trip"`
-	Handshake      *handshakeOptions `json:"handshake"` // TODO: make configurable
-	TLSRoundTrip   *roundTripOptions `json:"tls_round_trip"`
+	Connect        *ConnectOptions   `json:"connect"`
+	PlainRoundTrip *RoundTripOptions `json:"plain_round_trip"`
+	Handshake      *HandshakeOptions `json:"handshake"` // TODO: make configurable
+	TLSRoundTrip   *RoundTripOptions `json:"tls_round_trip"`
 }
 
-type connectOptions struct {
+// ConnectOptions represents tlschk connect configuration
+type ConnectOptions struct {
 	Address   *string `json:"address"`
 	Port      *int    `json:"port"`
 	IPVersion *int64  `json:"ip_version"`
 	Timeout   *int64  `json:"timeout"`
 }
 
-type handshakeOptions struct {
+// HandshakeOptions represents tlschk handshake configuration
+type HandshakeOptions struct {
 	CipherSuites                []string `json:"cipher_suites"`
 	MinVersion                  *string  `json:"min_version"`
 	MaxVersion                  *string  `json:"max_version"`
@@ -48,7 +50,8 @@ type handshakeOptions struct {
 	RootCerts                   []string `json:"root_certs"`
 }
 
-type roundTripOptions struct {
+// RoundTripOptions represents tlschk roundtrip configuration
+type RoundTripOptions struct {
 	Send        *string `json:"send"`
 	ReadTimeout *int64  `json:"read_timeout"`
 	RecvSize    *int    `json:"recv_size"`
