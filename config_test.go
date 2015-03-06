@@ -518,6 +518,27 @@ func TestCheckTrustedByRoot(t *testing.T) {
 	}
 }
 
+func TestCheckRevocation(t *testing.T) {
+	c := Config{}
+	v := c.CheckRevocation()
+	if !v {
+		t.Errorf("Config.CheckRevocation is %t, want true", v)
+	}
+
+	c.Handshake = &HandshakeOptions{}
+	v = c.CheckRevocation()
+	if !v {
+		t.Errorf("Config.CheckRevocation is %t, want true", v)
+	}
+
+	f := false
+	c.Handshake.CheckRevocation = &f
+	v = c.CheckRevocation()
+	if v {
+		t.Errorf("Config.CheckRevocation is %v, want %v", v, f)
+	}
+}
+
 func TestCheckNotAfterRemains(t *testing.T) {
 	c := Config{}
 	now := time.Now()

@@ -330,10 +330,10 @@ func (c *Config) CheckTrustedByRoot() bool {
 // CheckRevocation returns true if revocation check is enabled
 func (c *Config) CheckRevocation() bool {
 	if c.Handshake == nil {
-		return false
+		return true
 	}
 	if c.Handshake.CheckRevocation == nil {
-		return false
+		return true
 	}
 	return *c.Handshake.CheckRevocation
 }
