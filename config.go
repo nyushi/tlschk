@@ -58,6 +58,16 @@ type RoundTripOptions struct {
 	RecvUntil   *string `json:"recv_until"`
 }
 
+// NewDefaultConfig returns Config with default parameters
+func NewDefaultConfig() *Config {
+	return &Config{
+		Connect:        &ConnectOptions{},
+		PlainRoundTrip: &RoundTripOptions{},
+		Handshake:      &HandshakeOptions{},
+		TLSRoundTrip:   &RoundTripOptions{},
+	}
+}
+
 // LoadConfig returns configuratoin
 func LoadConfig(reader io.Reader) (*Config, error) {
 	errPrefix := "Config error."
@@ -313,6 +323,7 @@ func (c *Config) CheckTrustedByRoot() bool {
 	if c.Handshake.CheckTrustedByRoot == nil {
 		return true
 	}
+
 	return *c.Handshake.CheckTrustedByRoot
 }
 
