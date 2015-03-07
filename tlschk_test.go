@@ -120,21 +120,21 @@ func TestDoCheckConfigError(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
+		t.Fatal("read is not nil, want nil")
 	}
 }
 
 func TestDoCheckRefused(t *testing.T) {
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
     "read_timeout": 1,
-    "connect_timeout": 1
+    "connect_timeout": 1,
+    "address": "127.0.0.1",
+    "port": 4443
   }
 }`)
 	result := DoCheck(r)
@@ -146,7 +146,7 @@ func TestDoCheckRefused(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
+		t.Fatal("read is not nil, want nil")
 	}
 }
 
@@ -161,14 +161,14 @@ func TestDoCheckSuccess(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
     "read_timeout": 1,
-    "connect_timeout": 1
+    "connect_timeout": 1,
+    "address": "127.0.0.1",
+    "port": 4443
   }
 }`)
 	result := DoCheck(r)
@@ -177,12 +177,6 @@ func TestDoCheckSuccess(t *testing.T) {
 	}
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
-	}
-	if result.TLSRoundTripInfo == nil {
-		t.Fatal("recv is nil")
-	}
-	if result.TLSRoundTripInfo.Received != "" {
-		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -201,30 +195,25 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
+    "connect_timeout": 1
+  },
+  "plain_round_trip": {
     "read_timeout": 1,
-    "connect_timeout": 1,
-    "send_plain": "STARTTLS\r\n"
+    "send": "STARTTLS\r\n"
   }
 }`)
 	result := DoCheck(r)
-	println(result.Detail)
 	if result.Result != "OK" {
 		t.Error("result is not OK")
 	}
 	if result.Detail != "" {
 		t.Fatalf("detail is %q, want \"\"", result.Detail)
-	}
-	if result.TLSRoundTripInfo == nil {
-		t.Fatal("recv is nil")
-	}
-	if result.TLSRoundTripInfo.Received != "" {
-		t.Fatalf("recv is %q, want \"\"", result.TLSRoundTripInfo.Received)
 	}
 }
 
@@ -239,13 +228,12 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
   }
 }`)
@@ -256,9 +244,6 @@ func TestDoCheckHandshakeFailed(t *testing.T) {
 	prefix := "TLS error."
 	if !strings.HasPrefix(result.Detail, prefix) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
-	}
-	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
 	}
 }
 
@@ -273,15 +258,17 @@ func TestDoCheckServerNameMatch(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_servername": "localhost",
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -304,15 +291,17 @@ func TestDoCheckServerNameNotMatch(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_servername": "example.com",
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -336,15 +325,17 @@ func TestDoCheckTrustedOK(t *testing.T) {
 
 	j := fmt.Sprintf(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true,
     "root_certs": [%q]
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`, chain.CertPEM)
 	r := strings.NewReader(j)
@@ -369,14 +360,16 @@ func TestDoCheckTrustedNG(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1
   }
 }`)
 
@@ -402,15 +395,18 @@ func TestDoCheckReadData(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
+    "read_size": 4
   }
 }`)
 
@@ -422,11 +418,11 @@ func TestDoCheckReadData(t *testing.T) {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
 	if result.TLSRoundTripInfo == nil {
-		t.Fatalf("recv is nil")
+		t.Fatalf("read is nil")
 	}
-	recv := "test"
-	if result.TLSRoundTripInfo.Received != recv {
-		t.Fatalf("detail is %q, not %q", result.Detail, recv)
+	read := "test"
+	if result.TLSRoundTripInfo.Received != read {
+		t.Fatalf("detail is %q, not %q", result.Detail, read)
 	}
 }
 
@@ -444,15 +440,17 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false
   },
-  "connection": {
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
+    "connect_timeout": 1
+  },
+  "tls_round_trip": {
     "read_timeout": 1,
-    "connect_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   }
 }`)
 
@@ -465,11 +463,11 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
 	if result.TLSRoundTripInfo == nil {
-		t.Fatalf("recv is nil")
+		t.Fatalf("read is nil")
 	}
-	recv := "t"
-	if result.TLSRoundTripInfo.Received != recv {
-		t.Fatalf("detail is %q, not %q", result.Detail, recv)
+	read := "t"
+	if result.TLSRoundTripInfo.Received != read {
+		t.Fatalf("detail is %q, not %q", result.Detail, read)
 	}
 }
 
@@ -484,14 +482,17 @@ func TestDoCheckInvalidChain(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": true
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
+    "read_size": 4
   }
 }`)
 
@@ -516,15 +517,18 @@ func TestDoCheckExpired(t *testing.T) {
 
 	r := strings.NewReader(`
 {
-  "address": "127.0.0.1",
-  "port": 4443,
-  "verify": {
+  "handshake": {
     "check_trusted_by_root": false,
     "check_not_after_remains": 1000
   },
-  "connection": {
-    "read_timeout": 1,
+  "connect": {
+    "address": "127.0.0.1",
+    "port": 4443,
     "connect_timeout": 1
+  },
+  "tls_round_trip": {
+    "read_timeout": 1,
+    "read_size": 4
   }
 }`)
 
