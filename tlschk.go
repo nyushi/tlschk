@@ -1,6 +1,7 @@
 package tlschk
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/tls"
@@ -107,31 +108,17 @@ func connect(conf *Config) (net.Conn, error) {
 
 func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 	errPrefix := "Roundtrip(plain data) error."
-	writeBuf := conf.PlainData()
-	if _, err := conn.Write(writeBuf); err != nil {
-		return "", fmt.Errorf("%s Failed to write. %s", errPrefix, err.Error())
-	}
-
-	// discard plain data
-	// XXX read size is hardcoded for now
-	readBuf := make([]byte, 1024)
-	conn.SetReadDeadline(time.Now().Add(conf.PlainReadTimeout()))
-	n, err := conn.Read(readBuf)
+	buf, err := roundTrip(conn, conf.PlainData(), conf.PlainReadTimeout(), conf.PlainRecvSize(), conf.PlainRecvUntil())
 	if err != nil {
-		if netErr, ok := err.(net.Error); ok {
-			if !netErr.Timeout() {
-				return "", fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
-			}
-		}
+		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
-
-	return string(readBuf[:n]), nil
+	return string(buf), err
 }
 
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	errPrefix := "TLS error."
 	tlsConn := tls.Client(conn, conf.TLSConfig())
-	tlsConn.SetReadDeadline(time.Now().Add(defaultHandshakeTimeout))
+	tlsConn.SetDeadline(time.Now().Add(defaultHandshakeTimeout))
 	if err := tlsConn.Handshake(); err != nil {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
@@ -234,31 +221,65 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 
 func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 	errPrefix := "Application protocol error."
-	writeBuf := conf.TLSData()
-	if writeBuf != nil {
-		tlsConn.Write(writeBuf)
+	buf, err := roundTrip(tlsConn, conf.TLSData(), conf.TLSReadTimeout(), conf.TLSRecvSize(), conf.TLSRecvUntil())
+	if err != nil {
+		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
+	return buf, err
+}
 
-	readBuf := make([]byte, conf.TLSRecvSize())
+func roundTrip(conn net.Conn, data []byte, timeout time.Duration, recvSize int, recvUntil []byte) ([]byte, error) {
+	if err := write(conn, timeout, data); err != nil {
+		return nil, err
+	}
+	return read(conn, timeout, recvSize, recvUntil)
+}
+
+func write(conn net.Conn, timeout time.Duration, data []byte) error {
+	if data == nil {
+		return nil
+	}
+	wrote := 0
+	for wrote < len(data) {
+		conn.SetWriteDeadline(time.Now().Add(timeout))
+		n, err := conn.Write(data[wrote:])
+		if err != nil {
+			if nerr, ok := err.(net.Error); ok {
+				if nerr.Temporary() {
+					continue
+				}
+			}
+			return err
+		}
+		wrote += n
+	}
+	return nil
+}
+
+func read(conn net.Conn, timeout time.Duration, size int, until []byte) ([]byte, error) {
+	buf := make([]byte, size)
 	totalRead := 0
 	for {
-		tlsConn.SetReadDeadline(time.Now().Add(conf.TLSReadTimeout()))
-		n, err := tlsConn.Read(readBuf[totalRead:])
-		totalRead += n
-		if totalRead >= conf.TLSRecvSize() {
-			break
-		}
+		conn.SetReadDeadline(time.Now().Add(timeout))
+		n, err := conn.Read(buf[totalRead:])
 		if err != nil {
 			if err == io.EOF {
-				return readBuf[0:totalRead], nil
+				return buf[0:totalRead], nil
 			}
-			if netErr, ok := err.(net.Error); ok {
-				if netErr.Timeout() {
-					return readBuf[0:totalRead], nil
+			if nerr, ok := err.(net.Error); ok {
+				if nerr.Timeout() {
+					break
 				}
-				return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
+				return nil, err
 			}
 		}
+		totalRead += n
+		if bytes.Contains(buf[0:totalRead], until) {
+			break
+		}
+		if totalRead >= size {
+			break
+		}
 	}
-	return readBuf[0:totalRead], nil
+	return buf[0:totalRead], nil
 }

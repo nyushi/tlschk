@@ -209,7 +209,6 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
   }
 }`)
 	result := DoCheck(r)
-	println(result.Detail)
 	if result.Result != "OK" {
 		t.Error("result is not OK")
 	}
