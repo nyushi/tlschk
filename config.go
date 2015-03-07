@@ -17,7 +17,7 @@ const (
 	defaultReadTimeout      = 0
 	defaultConnectTimeout   = 10 * time.Second
 	defaultHandshakeTimeout = 10 * time.Second
-	defaultRecvSize         = 1024
+	defaultReadSize         = 1024
 )
 
 // Config represents tlschk configuration
@@ -54,8 +54,8 @@ type HandshakeOptions struct {
 type RoundTripOptions struct {
 	Send        *string `json:"send"`
 	ReadTimeout *int64  `json:"read_timeout"`
-	RecvSize    *int    `json:"recv_size"`
-	RecvUntil   *string `json:"recv_until"`
+	ReadSize    *int    `json:"read_size"`
+	ReadUntil   *string `json:"read_until"`
 }
 
 // NewDefaultConfig returns Config with default parameters
@@ -220,7 +220,7 @@ func (c *Config) NeedPlainRoundTrip() bool {
 	if c.PlainReadTimeout() != 0 {
 		return true
 	}
-	if c.PlainRecvUntil() != nil {
+	if c.PlainReadUntil() != nil {
 		return true
 	}
 	return false
@@ -251,7 +251,7 @@ func (c *Config) NeedTLSRoundTrip() bool {
 	if c.TLSReadTimeout() != 0 {
 		return true
 	}
-	if c.TLSRecvUntil() != nil {
+	if c.TLSReadUntil() != nil {
 		return true
 	}
 	return false
@@ -271,48 +271,48 @@ func (c *Config) TLSData() []byte {
 	return []byte(*c.TLSRoundTrip.Send)
 }
 
-// PlainRecvUntil returns byte data
-func (c *Config) PlainRecvUntil() []byte {
+// PlainReadUntil returns byte data
+func (c *Config) PlainReadUntil() []byte {
 	if c.PlainRoundTrip == nil {
 		return nil
 	}
-	if c.PlainRoundTrip.RecvUntil == nil {
+	if c.PlainRoundTrip.ReadUntil == nil {
 		return nil
 	}
-	return []byte(*c.PlainRoundTrip.RecvUntil)
+	return []byte(*c.PlainRoundTrip.ReadUntil)
 }
 
-// TLSRecvUntil returns byte data
-func (c *Config) TLSRecvUntil() []byte {
+// TLSReadUntil returns byte data
+func (c *Config) TLSReadUntil() []byte {
 	if c.TLSRoundTrip == nil {
 		return nil
 	}
-	if c.TLSRoundTrip.RecvUntil == nil {
+	if c.TLSRoundTrip.ReadUntil == nil {
 		return nil
 	}
-	return []byte(*c.TLSRoundTrip.RecvUntil)
+	return []byte(*c.TLSRoundTrip.ReadUntil)
 }
 
-// PlainRecvSize returns buffer size of response
-func (c *Config) PlainRecvSize() int {
+// PlainReadSize returns buffer size of response
+func (c *Config) PlainReadSize() int {
 	if c.PlainRoundTrip == nil {
-		return defaultRecvSize
+		return defaultReadSize
 	}
-	if c.PlainRoundTrip.RecvSize == nil {
-		return defaultRecvSize
+	if c.PlainRoundTrip.ReadSize == nil {
+		return defaultReadSize
 	}
-	return *c.PlainRoundTrip.RecvSize
+	return *c.PlainRoundTrip.ReadSize
 }
 
-// TLSRecvSize returns buffer size of response
-func (c *Config) TLSRecvSize() int {
+// TLSReadSize returns buffer size of response
+func (c *Config) TLSReadSize() int {
 	if c.TLSRoundTrip == nil {
-		return defaultRecvSize
+		return defaultReadSize
 	}
-	if c.TLSRoundTrip.RecvSize == nil {
-		return defaultRecvSize
+	if c.TLSRoundTrip.ReadSize == nil {
+		return defaultReadSize
 	}
-	return *c.TLSRoundTrip.RecvSize
+	return *c.TLSRoundTrip.ReadSize
 }
 
 // CheckTrustedByRoot returns true if trusted check is enabled

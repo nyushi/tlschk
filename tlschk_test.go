@@ -120,7 +120,7 @@ func TestDoCheckConfigError(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
+		t.Fatal("read is not nil, want nil")
 	}
 }
 
@@ -146,7 +146,7 @@ func TestDoCheckRefused(t *testing.T) {
 		t.Fatalf("detail is %q, not starts with %q", result.Detail, prefix)
 	}
 	if result.TLSRoundTripInfo != nil {
-		t.Fatal("recv is not nil, want nil")
+		t.Fatal("read is not nil, want nil")
 	}
 }
 
@@ -402,11 +402,11 @@ func TestDoCheckReadData(t *testing.T) {
     "address": "127.0.0.1",
     "port": 4443,
     "connect_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   },
   "tls_round_trip": {
     "read_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   }
 }`)
 
@@ -418,11 +418,11 @@ func TestDoCheckReadData(t *testing.T) {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
 	if result.TLSRoundTripInfo == nil {
-		t.Fatalf("recv is nil")
+		t.Fatalf("read is nil")
 	}
-	recv := "test"
-	if result.TLSRoundTripInfo.Received != recv {
-		t.Fatalf("detail is %q, not %q", result.Detail, recv)
+	read := "test"
+	if result.TLSRoundTripInfo.Received != read {
+		t.Fatalf("detail is %q, not %q", result.Detail, read)
 	}
 }
 
@@ -450,7 +450,7 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
   },
   "tls_round_trip": {
     "read_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   }
 }`)
 
@@ -463,11 +463,11 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
 		t.Fatalf("detail is %q, not \"\"", result.Detail)
 	}
 	if result.TLSRoundTripInfo == nil {
-		t.Fatalf("recv is nil")
+		t.Fatalf("read is nil")
 	}
-	recv := "t"
-	if result.TLSRoundTripInfo.Received != recv {
-		t.Fatalf("detail is %q, not %q", result.Detail, recv)
+	read := "t"
+	if result.TLSRoundTripInfo.Received != read {
+		t.Fatalf("detail is %q, not %q", result.Detail, read)
 	}
 }
 
@@ -492,7 +492,7 @@ func TestDoCheckInvalidChain(t *testing.T) {
   },
   "tls_round_trip": {
     "read_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   }
 }`)
 
@@ -528,7 +528,7 @@ func TestDoCheckExpired(t *testing.T) {
   },
   "tls_round_trip": {
     "read_timeout": 1,
-    "recv_size": 4
+    "read_size": 4
   }
 }`)
 

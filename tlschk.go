@@ -85,8 +85,8 @@ func DoCheckByConfig(conf *Config) *Result {
 			r.SetError(err)
 			return r
 		}
-		recvStr := string(readBuf)
-		r.SetTLSRoundTripInfo(recvStr, elapsed(tt))
+		readStr := string(readBuf)
+		r.SetTLSRoundTripInfo(readStr, elapsed(tt))
 	}
 	r.SetTrustedChains(trustedChains)
 	return r
@@ -108,7 +108,7 @@ func connect(conf *Config) (net.Conn, error) {
 
 func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 	errPrefix := "Roundtrip(plain data) error."
-	buf, err := roundTrip(conn, conf.PlainData(), conf.PlainReadTimeout(), conf.PlainRecvSize(), conf.PlainRecvUntil())
+	buf, err := roundTrip(conn, conf.PlainData(), conf.PlainReadTimeout(), conf.PlainReadSize(), conf.PlainReadUntil())
 	if err != nil {
 		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
@@ -221,18 +221,18 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 
 func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 	errPrefix := "Application protocol error."
-	buf, err := roundTrip(tlsConn, conf.TLSData(), conf.TLSReadTimeout(), conf.TLSRecvSize(), conf.TLSRecvUntil())
+	buf, err := roundTrip(tlsConn, conf.TLSData(), conf.TLSReadTimeout(), conf.TLSReadSize(), conf.TLSReadUntil())
 	if err != nil {
 		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
 	return buf, err
 }
 
-func roundTrip(conn net.Conn, data []byte, timeout time.Duration, recvSize int, recvUntil []byte) ([]byte, error) {
+func roundTrip(conn net.Conn, data []byte, timeout time.Duration, readSize int, readUntil []byte) ([]byte, error) {
 	if err := write(conn, timeout, data); err != nil {
 		return nil, err
 	}
-	return read(conn, timeout, recvSize, recvUntil)
+	return read(conn, timeout, readSize, readUntil)
 }
 
 func write(conn net.Conn, timeout time.Duration, data []byte) error {

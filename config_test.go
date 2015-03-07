@@ -296,25 +296,25 @@ func TestPlainData(t *testing.T) {
 	}
 }
 
-func TestPlainRecvUntil(t *testing.T) {
+func TestPlainReadUntil(t *testing.T) {
 	c := Config{}
 
-	v := c.PlainRecvUntil()
+	v := c.PlainReadUntil()
 	if v != nil {
-		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
+		t.Errorf("Config.PlainReadUntil is %q, want nil", v)
 	}
 
 	c.PlainRoundTrip = &RoundTripOptions{}
-	v = c.PlainRecvUntil()
+	v = c.PlainReadUntil()
 	if v != nil {
-		t.Errorf("Config.PlainRecvUntil is %q, want nil", v)
+		t.Errorf("Config.PlainReadUntil is %q, want nil", v)
 	}
 
 	d := "data"
-	c.PlainRoundTrip.RecvUntil = &d
-	v = c.PlainRecvUntil()
+	c.PlainRoundTrip.ReadUntil = &d
+	v = c.PlainReadUntil()
 	if string(v) != d {
-		t.Errorf("Config.PlainRecvUntil is %q, want %q", v, d)
+		t.Errorf("Config.PlainReadUntil is %q, want %q", v, d)
 
 	}
 }
@@ -357,7 +357,7 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 
 	c.PlainRoundTrip.ReadTimeout = nil
 	ru := "data"
-	c.PlainRoundTrip.RecvUntil = &ru
+	c.PlainRoundTrip.ReadUntil = &ru
 	v = c.NeedPlainRoundTrip()
 	if v != true {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
@@ -425,7 +425,7 @@ func TestNeedTLSRoundTrip(t *testing.T) {
 
 	c.TLSRoundTrip.ReadTimeout = nil
 	ru := "data"
-	c.TLSRoundTrip.RecvUntil = &ru
+	c.TLSRoundTrip.ReadUntil = &ru
 	v = c.NeedTLSRoundTrip()
 	if v != true {
 		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
@@ -433,67 +433,67 @@ func TestNeedTLSRoundTrip(t *testing.T) {
 
 }
 
-func TestTLSRecvUntil(t *testing.T) {
+func TestTLSReadUntil(t *testing.T) {
 	c := Config{}
 
-	v := c.TLSRecvUntil()
+	v := c.TLSReadUntil()
 	if v != nil {
-		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
+		t.Errorf("Config.TLSReadUntil is %q, want nil", v)
 	}
 
 	c.TLSRoundTrip = &RoundTripOptions{}
-	v = c.TLSRecvUntil()
+	v = c.TLSReadUntil()
 	if v != nil {
-		t.Errorf("Config.TLSRecvUntil is %q, want nil", v)
+		t.Errorf("Config.TLSReadUntil is %q, want nil", v)
 	}
 
 	d := "data"
-	c.TLSRoundTrip.RecvUntil = &d
-	v = c.TLSRecvUntil()
+	c.TLSRoundTrip.ReadUntil = &d
+	v = c.TLSReadUntil()
 	if string(v) != d {
-		t.Errorf("Config.TLSRecvUntil is %q, want %q", v, d)
+		t.Errorf("Config.TLSReadUntil is %q, want %q", v, d)
 
 	}
 }
 
-func TestPlainRecvSize(t *testing.T) {
+func TestPlainReadSize(t *testing.T) {
 	c := Config{}
-	v := c.PlainRecvSize()
+	v := c.PlainReadSize()
 	if v != 1024 {
-		t.Errorf("Config.RecvSize is %q, want 1024", v)
+		t.Errorf("Config.ReadSize is %q, want 1024", v)
 	}
 
 	c.PlainRoundTrip = &RoundTripOptions{}
-	v = c.PlainRecvSize()
+	v = c.PlainReadSize()
 	if v != 1024 {
-		t.Errorf("Config.RecvSize is %q, want 1024", v)
+		t.Errorf("Config.ReadSize is %q, want 1024", v)
 	}
 
 	rs := 1
-	c.PlainRoundTrip.RecvSize = &rs
-	v = c.PlainRecvSize()
+	c.PlainRoundTrip.ReadSize = &rs
+	v = c.PlainReadSize()
 	if v != rs {
-		t.Errorf("Config.RecvSize is %q, want %q", v, rs)
+		t.Errorf("Config.ReadSize is %q, want %q", v, rs)
 	}
 }
-func TestTLSRecvSize(t *testing.T) {
+func TestTLSReadSize(t *testing.T) {
 	c := Config{}
-	v := c.TLSRecvSize()
+	v := c.TLSReadSize()
 	if v != 1024 {
-		t.Errorf("Config.RecvSize is %q, want 1024", v)
+		t.Errorf("Config.ReadSize is %q, want 1024", v)
 	}
 
 	c.TLSRoundTrip = &RoundTripOptions{}
-	v = c.TLSRecvSize()
+	v = c.TLSReadSize()
 	if v != 1024 {
-		t.Errorf("Config.RecvSize is %q, want 1024", v)
+		t.Errorf("Config.ReadSize is %q, want 1024", v)
 	}
 
 	rs := 1
-	c.TLSRoundTrip.RecvSize = &rs
-	v = c.TLSRecvSize()
+	c.TLSRoundTrip.ReadSize = &rs
+	v = c.TLSReadSize()
 	if v != rs {
-		t.Errorf("Config.RecvSize is %q, want %q", v, rs)
+		t.Errorf("Config.ReadSize is %q, want %q", v, rs)
 	}
 }
 
