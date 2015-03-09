@@ -1,12 +1,9 @@
 package tlschk
 
 import (
-	"crypto/md5"
 	"crypto/sha1"
 	"crypto/tls"
-	"crypto/x509"
-	"fmt"
-	"hash"
+	"errors"
 	"net"
 	"strconv"
 )
@@ -41,17 +38,9 @@ type tlsRoundTripInfo struct {
 type tlsInfo struct {
 	Version       string          `json:"version"`
 	Cipher        string          `json:"cipher"`
-	ReceivedCerts []certSummary   `json:"received_certs"`
-	TrustedChains [][]certSummary `json:"trusted_chains"`
+	ReceivedCerts []CertSummary   `json:"received_certs"`
+	TrustedChains [][]CertSummary `json:"trusted_chains"`
 	Elapsed       float64         `json:"elapsed"`
-}
-
-type certSummary struct {
-	Subject         string   `json:"subject"`
-	SubjectAltNames []string `json:"subject_alt_names"`
-	Issuer          string   `json:"issuer"`
-	MD5             string   `json:"md5"`
-	SHA1            string   `json:"sha1"`
 }
 
 type connectionStateGetter interface {
@@ -90,9 +79,26 @@ func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 		Elapsed: elapsed,
 	}
 
-	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
+	r.TLSInfo.ReceivedCerts = make([]CertSummary, len(connState.PeerCertificates))
 	for i, cert := range connState.PeerCertificates {
-		r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
+		c := &Cert{cert, false, ""}
+		r.TLSInfo.ReceivedCerts[i] = c.Summary()
+	}
+}
+
+// UpdateTLSInfo updates tls info by invalid certificate chains
+func (r *Result) UpdateTLSInfo(invalidChains [][]*Cert) {
+	if r.TLSInfo == nil {
+		return
+	}
+	for _, chain := range invalidChains {
+		for _, cert := range chain {
+			for i, received := range r.TLSInfo.ReceivedCerts {
+				if received.SHA1 == cert.Fingerprint(sha1.New()) {
+					r.TLSInfo.ReceivedCerts[i] = cert.Summary()
+				}
+			}
+		}
 	}
 }
 
@@ -113,31 +119,20 @@ func (r *Result) SetTLSRoundTripInfo(data string, elapsed float64) {
 }
 
 // SetTrustedChains set trusted certificate chains
-func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
+func (r *Result) SetTrustedChains(chains [][]*Cert) {
 	if r.TLSInfo == nil {
 		return
 	}
 
-	r.TLSInfo.TrustedChains = make([][]certSummary, len(chains))
-	for i, chain := range chains {
-		r.TLSInfo.TrustedChains[i] = make([]certSummary, len(chain))
-		for j, cert := range chain {
-			r.TLSInfo.TrustedChains[i][j] = getCertSummary(cert)
-		}
+	if len(chains) == 0 {
+		r.SetError(errors.New("TLS verify error. trusted chain not found"))
+		return
 	}
-}
-
-func fingerprint(c *x509.Certificate, h hash.Hash) string {
-	h.Write(c.Raw)
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func getCertSummary(cert *x509.Certificate) certSummary {
-	return certSummary{
-		Subject:         cert.Subject.CommonName,
-		SubjectAltNames: cert.DNSNames,
-		Issuer:          cert.Issuer.CommonName,
-		MD5:             fingerprint(cert, md5.New()),
-		SHA1:            fingerprint(cert, sha1.New()),
+	r.TLSInfo.TrustedChains = make([][]CertSummary, len(chains))
+	for i, chain := range chains {
+		r.TLSInfo.TrustedChains[i] = make([]CertSummary, len(chain))
+		for j, cert := range chain {
+			r.TLSInfo.TrustedChains[i][j] = cert.Summary()
+		}
 	}
 }
