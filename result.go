@@ -49,6 +49,8 @@ type certSummary struct {
 	Issuer          string   `json:"issuer"`
 	MD5             string   `json:"md5"`
 	SHA1            string   `json:"sha1"`
+	NotAfter        int64    `json:"not_after"`
+	NotBefore       int64    `json:"not_before"`
 }
 
 type connectionStateGetter interface {
@@ -131,5 +133,7 @@ func getCertSummary(cert *Cert) certSummary {
 		Issuer:          cert.Issuer.CommonName,
 		MD5:             cert.Fingerprint(md5.New()),
 		SHA1:            cert.Fingerprint(sha1.New()),
+		NotAfter:        cert.NotAfter.Unix(),
+		NotBefore:       cert.NotBefore.Unix(),
 	}
 }
