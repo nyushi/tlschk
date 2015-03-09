@@ -72,11 +72,12 @@ func DoCheckByConfig(conf *Config) *Result {
 	}
 	r.SetTLSInfo(tlsConn, elapsed(tt))
 
-	trustedChains, err := verify(conf, tlsConn)
+	trustedChains, invalidChains, err := verify(conf, tlsConn)
 	if err != nil {
 		r.SetError(err)
 		return r
 	}
+	r.UpdateTLSInfo(invalidChains)
 
 	if conf.NeedTLSRoundTrip() {
 		tt = time.Now()
@@ -136,7 +137,7 @@ func getPublicKeySize(pub interface{}) (sie int, err error) {
 
 }
 
-func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, error) {
+func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, [][]*Cert, error) {
 	errPrefix := "TLS verify error."
 
 	connState := tlsConn.ConnectionState()
@@ -171,56 +172,47 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, error) {
 		verifyOpts.DNSName = *serverName
 	}
 
-	chains, err := serverCert.Verify(verifyOpts)
+	x509chains, err := serverCert.Verify(verifyOpts)
 	if err != nil {
-		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
+		return nil, nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 
 	trustedChains := [][]*Cert{}
-	revokeChains := make([]bool, len(chains))
-	for i, chain := range chains {
-		if conf.CheckRevocation() {
-			revokeChains[i] = isRevokedChain(chain)
+	invalidChains := [][]*Cert{}
+	for _, x509chain := range x509chains {
+		chain := NewCertChain(x509chain)
+		chain.CheckRevocation()
+		valid := true
+		if chain.IsRevoked() {
+			valid = false
+		}
+		for _, cert := range chain {
+			if !conf.CheckNotAfterRemains().Before(cert.NotAfter) {
+				cert.Error += "nearing expiration. "
+				valid = false
+			}
+			if _, ok := cert.PublicKey.(*rsa.PublicKey); ok {
+				keylen, _ := getPublicKeySize(cert.PublicKey)
+				if keylen <= conf.CheckMinRSABitlen() {
+					cert.Error += "pubkey bitlen is short. "
+					valid = false
+				}
+			}
+			for _, sigAlgo := range conf.SignatureAlgorithmBlacklist() {
+				if cert.SignatureAlgorithm == sigAlgo {
+					cert.Error += "signature algorithm is obsoleted. "
+					valid = false
+				}
+			}
+		}
+
+		if valid {
+			trustedChains = append(trustedChains, chain)
 		} else {
-			revokeChains[i] = false
+			invalidChains = append(invalidChains, chain)
 		}
 	}
-
-	for i, b := range revokeChains {
-		if !b {
-			// valid chain found
-			invalid := false
-			for _, cert := range chains[i] {
-				if !conf.CheckNotAfterRemains().Before(cert.NotAfter) {
-					invalid = true
-				}
-				if _, ok := cert.PublicKey.(*rsa.PublicKey); ok {
-					keylen, _ := getPublicKeySize(cert.PublicKey)
-					if keylen <= conf.CheckMinRSABitlen() {
-						invalid = true
-					}
-				}
-				for _, sigAlgo := range conf.SignatureAlgorithmBlacklist() {
-					if cert.SignatureAlgorithm == sigAlgo {
-						invalid = true
-					}
-				}
-			}
-			if !invalid {
-				certs := make([]*Cert, len(chains[i]))
-				for i, c := range chains[i] {
-					certs[i] = &Cert{c}
-				}
-				trustedChains = append(trustedChains, certs)
-			}
-		}
-	}
-
-	if len(trustedChains) == 0 {
-		return nil, fmt.Errorf("%s %s", errPrefix, "invalid certificate")
-	}
-
-	return trustedChains, nil
+	return trustedChains, invalidChains, nil
 }
 
 func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/tls"
+	"errors"
 	"net"
 	"strconv"
 )
@@ -51,6 +52,8 @@ type certSummary struct {
 	SHA1            string   `json:"sha1"`
 	NotAfter        int64    `json:"not_after"`
 	NotBefore       int64    `json:"not_before"`
+	Revoked         bool     `json:"revoked"`
+	Error           string   `json:"warn"`
 }
 
 type connectionStateGetter interface {
@@ -91,7 +94,23 @@ func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 
 	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
 	for i, cert := range connState.PeerCertificates {
-		r.TLSInfo.ReceivedCerts[i] = getCertSummary(&Cert{cert})
+		r.TLSInfo.ReceivedCerts[i] = getCertSummary(&Cert{cert, false, ""})
+	}
+}
+
+// UpdateTLSInfo updates tls info by invalid certificate chains
+func (r *Result) UpdateTLSInfo(invalidChains [][]*Cert) {
+	if r.TLSInfo == nil {
+		return
+	}
+	for _, chain := range invalidChains {
+		for _, cert := range chain {
+			for i, received := range r.TLSInfo.ReceivedCerts {
+				if received.SHA1 == cert.Fingerprint(sha1.New()) {
+					r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
+				}
+			}
+		}
 	}
 }
 
@@ -117,6 +136,10 @@ func (r *Result) SetTrustedChains(chains [][]*Cert) {
 		return
 	}
 
+	if len(chains) == 0 {
+		r.SetError(errors.New("TLS verify error. trusted chain not found"))
+		return
+	}
 	r.TLSInfo.TrustedChains = make([][]certSummary, len(chains))
 	for i, chain := range chains {
 		r.TLSInfo.TrustedChains[i] = make([]certSummary, len(chain))
@@ -135,5 +158,7 @@ func getCertSummary(cert *Cert) certSummary {
 		SHA1:            cert.Fingerprint(sha1.New()),
 		NotAfter:        cert.NotAfter.Unix(),
 		NotBefore:       cert.NotBefore.Unix(),
+		Revoked:         cert.Revoked,
+		Error:           cert.Error,
 	}
 }

@@ -106,9 +106,9 @@ func TestResultSetTLSInfo(t *testing.T) {
 func TestSetTrustedChains(t *testing.T) {
 	r := Result{}
 	chains := [][]*Cert{[]*Cert{
-		&Cert{leaf.X509Cert},
-		&Cert{chain.X509Cert},
-		&Cert{root.X509Cert}}}
+		&Cert{leaf.X509Cert, false, ""},
+		&Cert{chain.X509Cert, false, ""},
+		&Cert{root.X509Cert, false, ""}}}
 	r.SetTrustedChains(chains)
 	if r.TLSInfo != nil {
 		t.Error("r.TLSInfo is not nil, want nil")
@@ -125,4 +125,32 @@ func TestSetTrustedChains(t *testing.T) {
 	if len(r.TLSInfo.TrustedChains[0]) != 3 {
 		t.Errorf("r.TLSInfo.TrustedChains[0] len is %q, want 3", len(r.TLSInfo.TrustedChains))
 	}
+}
+
+func TestResultUpdateTLSInfo(t *testing.T) {
+	r := &Result{}
+	r.UpdateTLSInfo(nil)
+	if r.TLSInfo != nil {
+		t.Error("r.TLSInfo is not nil, want nil")
+	}
+
+	c := &Cert{root.X509Cert, false, ""}
+	r.TLSInfo = &tlsInfo{
+		ReceivedCerts: []certSummary{
+			getCertSummary(c),
+		},
+	}
+	// modify
+	r.TLSInfo.ReceivedCerts[0].Error = "some error"
+	r.TLSInfo.ReceivedCerts[0].Revoked = true
+
+	r.UpdateTLSInfo([][]*Cert{{c}})
+	// returned
+	if r.TLSInfo.ReceivedCerts[0].Error != "" {
+		t.Errorf("r.TLSInfo.ReceivedCerts[0].Error is %q, want \"\"", r.TLSInfo.ReceivedCerts[0].Error)
+	}
+	if r.TLSInfo.ReceivedCerts[0].Revoked != false {
+		t.Error("r.TLSInfo.ReceivedCerts[0].Revoked is true, want false")
+	}
+
 }
