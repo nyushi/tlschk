@@ -4,8 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/tls"
-	"fmt"
-	"hash"
 	"net"
 	"strconv"
 )
@@ -126,17 +124,12 @@ func (r *Result) SetTrustedChains(chains [][]*Cert) {
 	}
 }
 
-func fingerprint(c *Cert, h hash.Hash) string {
-	h.Write(c.Raw)
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
 func getCertSummary(cert *Cert) certSummary {
 	return certSummary{
 		Subject:         cert.Subject.CommonName,
 		SubjectAltNames: cert.DNSNames,
 		Issuer:          cert.Issuer.CommonName,
-		MD5:             fingerprint(cert, md5.New()),
-		SHA1:            fingerprint(cert, sha1.New()),
+		MD5:             cert.Fingerprint(md5.New()),
+		SHA1:            cert.Fingerprint(sha1.New()),
 	}
 }
