@@ -30,10 +30,10 @@ type Config struct {
 
 // ConnectOptions represents tlschk connect configuration
 type ConnectOptions struct {
-	Address   *string `json:"address"`
-	Port      *int    `json:"port"`
-	IPVersion *int64  `json:"ip_version"`
-	Timeout   *int64  `json:"timeout"`
+	Address   string `json:"address"`
+	Port      int    `json:"port"`
+	IPVersion *int64 `json:"ip_version"`
+	Timeout   *int64 `json:"timeout"`
 }
 
 // HandshakeOptions represents tlschk handshake configuration
@@ -95,10 +95,10 @@ func (c *Config) Check() error {
 	if c.Connect == nil {
 		return errors.New("connect is required")
 	}
-	if c.Connect.Address == nil {
+	if c.Connect.Address == "" {
 		return errors.New("address is required")
 	}
-	if c.Connect.Port == nil {
+	if c.Connect.Port == 0 {
 		return errors.New("port is required")
 	}
 	_, errs := c.rootCerts()

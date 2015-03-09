@@ -87,11 +87,11 @@ func TestLoadConfigRequired(t *testing.T) {
 	if err != nil {
 		t.Errorf("LoadConfig returns error %q", err)
 	}
-	if *c.Connect.Address != "127.0.0.1" {
-		t.Errorf("LoadConfig loaded address is %q, want 127.0.0.1", *c.Connect.Address)
+	if c.Connect.Address != "127.0.0.1" {
+		t.Errorf("LoadConfig loaded address is %q, want 127.0.0.1", c.Connect.Address)
 	}
-	if *c.Connect.Port != 443 {
-		t.Errorf("LoadConfig loaded port is %q, want 127.0.0.1", *c.Connect.Port)
+	if c.Connect.Port != 443 {
+		t.Errorf("LoadConfig loaded port is %q, want 127.0.0.1", c.Connect.Port)
 	}
 }
 
@@ -100,8 +100,8 @@ func TestCheck(t *testing.T) {
 	port := 443
 	c := Config{
 		Connect: &ConnectOptions{
-			Address: &addr,
-			Port:    &port,
+			Address: addr,
+			Port:    port,
 		},
 		Handshake: &HandshakeOptions{
 			RootCerts: []string{""},
