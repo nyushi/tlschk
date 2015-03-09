@@ -136,8 +136,8 @@ func TestResultUpdateTLSInfo(t *testing.T) {
 
 	c := &Cert{root.X509Cert, false, ""}
 	r.TLSInfo = &tlsInfo{
-		ReceivedCerts: []certSummary{
-			getCertSummary(c),
+		ReceivedCerts: []CertSummary{
+			c.Summary(),
 		},
 	}
 	// modify
