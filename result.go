@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"hash"
 	"net"
@@ -92,7 +91,7 @@ func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 
 	r.TLSInfo.ReceivedCerts = make([]certSummary, len(connState.PeerCertificates))
 	for i, cert := range connState.PeerCertificates {
-		r.TLSInfo.ReceivedCerts[i] = getCertSummary(cert)
+		r.TLSInfo.ReceivedCerts[i] = getCertSummary(&Cert{cert})
 	}
 }
 
@@ -113,7 +112,7 @@ func (r *Result) SetTLSRoundTripInfo(data string, elapsed float64) {
 }
 
 // SetTrustedChains set trusted certificate chains
-func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
+func (r *Result) SetTrustedChains(chains [][]*Cert) {
 	if r.TLSInfo == nil {
 		return
 	}
@@ -127,12 +126,12 @@ func (r *Result) SetTrustedChains(chains [][]*x509.Certificate) {
 	}
 }
 
-func fingerprint(c *x509.Certificate, h hash.Hash) string {
+func fingerprint(c *Cert, h hash.Hash) string {
 	h.Write(c.Raw)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func getCertSummary(cert *x509.Certificate) certSummary {
+func getCertSummary(cert *Cert) certSummary {
 	return certSummary{
 		Subject:         cert.Subject.CommonName,
 		SubjectAltNames: cert.DNSNames,

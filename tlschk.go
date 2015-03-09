@@ -136,7 +136,7 @@ func getPublicKeySize(pub interface{}) (sie int, err error) {
 
 }
 
-func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
+func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, error) {
 	errPrefix := "TLS verify error."
 
 	connState := tlsConn.ConnectionState()
@@ -176,7 +176,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
 
-	trustedChains := [][]*x509.Certificate{}
+	trustedChains := [][]*Cert{}
 	revokeChains := make([]bool, len(chains))
 	for i, chain := range chains {
 		if conf.CheckRevocation() {
@@ -207,7 +207,11 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*x509.Certificate, error) {
 				}
 			}
 			if !invalid {
-				trustedChains = append(trustedChains, chains[i])
+				certs := make([]*Cert, len(chains[i]))
+				for i, c := range chains[i] {
+					certs[i] = &Cert{c}
+				}
+				trustedChains = append(trustedChains, certs)
 			}
 		}
 	}

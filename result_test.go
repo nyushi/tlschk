@@ -2,7 +2,6 @@ package tlschk
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"net"
 	"testing"
@@ -106,7 +105,10 @@ func TestResultSetTLSInfo(t *testing.T) {
 
 func TestSetTrustedChains(t *testing.T) {
 	r := Result{}
-	chains := [][]*x509.Certificate{[]*x509.Certificate{leaf.X509Cert, chain.X509Cert, root.X509Cert}}
+	chains := [][]*Cert{[]*Cert{
+		&Cert{leaf.X509Cert},
+		&Cert{chain.X509Cert},
+		&Cert{root.X509Cert}}}
 	r.SetTrustedChains(chains)
 	if r.TLSInfo != nil {
 		t.Error("r.TLSInfo is not nil, want nil")
