@@ -38,8 +38,8 @@ func getHostPort(in string) (string, int, error) {
 
 func getConfig(host string, port int) *tlschk.Config {
 	c := tlschk.NewDefaultConfig()
-	c.Connect.Address = &host
-	c.Connect.Port = &port
+	c.Connect.Address = host
+	c.Connect.Port = port
 
 	c.Handshake.CheckServername = &host
 
