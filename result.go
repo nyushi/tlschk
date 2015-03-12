@@ -10,32 +10,36 @@ import (
 
 // Result represents check result
 type Result struct {
-	Result             string              `json:"result"`
-	Detail             string              `json:"detail"`
-	ConnectionInfo     *connectionInfo     `json:"connection_info,omitempty"`
-	PlainRoundTripInfo *plainRoundTripInfo `json:"plain_round_trip_info,omitempty"`
-	TLSInfo            *tlsInfo            `json:"tls_info,omitempty"`
-	TLSRoundTripInfo   *tlsRoundTripInfo   `json:"tls_round_trip_info,omitempty"`
-	Elapsed            float64             `json:"elapsed"`
+	Result             string                    `json:"result"`
+	Detail             string                    `json:"detail"`
+	ConnectionInfo     *ResultConnectionInfo     `json:"connection_info,omitempty"`
+	PlainRoundTripInfo *ResultPlainRoundTripInfo `json:"plain_round_trip_info,omitempty"`
+	TLSInfo            *ResultTLSInfo            `json:"tls_info,omitempty"`
+	TLSRoundTripInfo   *ResultTLSRoundTripInfo   `json:"tls_round_trip_info,omitempty"`
+	Elapsed            float64                   `json:"elapsed"`
 }
 
-type connectionInfo struct {
+// ResultConnectionInfo represents result of connection
+type ResultConnectionInfo struct {
 	IPAddress string  `json:"ip_address"`
 	Port      int     `json:"port"`
 	Elapsed   float64 `json:"elapsed"`
 }
 
-type plainRoundTripInfo struct {
+// ResultPlainRoundTripInfo represents result of plain round trip
+type ResultPlainRoundTripInfo struct {
 	Received string  `json:"recv"`
 	Elapsed  float64 `json:"elapsed"`
 }
 
-type tlsRoundTripInfo struct {
+// ResultTLSRoundTripInfo represents result of tls round trip
+type ResultTLSRoundTripInfo struct {
 	Received string  `json:"recv"`
 	Elapsed  float64 `json:"elapsed"`
 }
 
-type tlsInfo struct {
+// ResultTLSInfo represents result of tls
+type ResultTLSInfo struct {
 	Version       string          `json:"version"`
 	Cipher        string          `json:"cipher"`
 	ReceivedCerts []CertSummary   `json:"received_certs"`
@@ -64,7 +68,7 @@ func (r *Result) SetConnectionInfo(c remoteAddrGetter, elapsed float64) {
 	}
 	host, port, _ := net.SplitHostPort(c.RemoteAddr().String())
 	portInt, _ := strconv.Atoi(port)
-	r.ConnectionInfo = &connectionInfo{IPAddress: host, Port: portInt, Elapsed: elapsed}
+	r.ConnectionInfo = &ResultConnectionInfo{IPAddress: host, Port: portInt, Elapsed: elapsed}
 }
 
 // SetTLSInfo set tlsinfo
@@ -73,7 +77,7 @@ func (r *Result) SetTLSInfo(c connectionStateGetter, elapsed float64) {
 		return
 	}
 	connState := c.ConnectionState()
-	r.TLSInfo = &tlsInfo{
+	r.TLSInfo = &ResultTLSInfo{
 		Version: TLSVersionString(connState.Version),
 		Cipher:  TLSCipherString(connState.CipherSuite),
 		Elapsed: elapsed,
@@ -104,7 +108,7 @@ func (r *Result) UpdateTLSInfo(invalidChains [][]*Cert) {
 
 // SetPlainRoundTripInfo set plainRoundTripInfo
 func (r *Result) SetPlainRoundTripInfo(data string, elapsed float64) {
-	r.PlainRoundTripInfo = &plainRoundTripInfo{
+	r.PlainRoundTripInfo = &ResultPlainRoundTripInfo{
 		Received: data,
 		Elapsed:  elapsed,
 	}
@@ -112,7 +116,7 @@ func (r *Result) SetPlainRoundTripInfo(data string, elapsed float64) {
 
 // SetTLSRoundTripInfo set tlsRoundTripInfo
 func (r *Result) SetTLSRoundTripInfo(data string, elapsed float64) {
-	r.TLSRoundTripInfo = &tlsRoundTripInfo{
+	r.TLSRoundTripInfo = &ResultTLSRoundTripInfo{
 		Received: data,
 		Elapsed:  elapsed,
 	}
