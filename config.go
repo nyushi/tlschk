@@ -26,6 +26,7 @@ type Config struct {
 	PlainRoundTrip *RoundTripOptions `json:"plain_round_trip"`
 	Handshake      *HandshakeOptions `json:"handshake"` // TODO: make configurable
 	TLSRoundTrip   *RoundTripOptions `json:"tls_round_trip"`
+	Timeout        *int64            `json:"timeout"`
 }
 
 // ConnectOptions represents tlschk connect configuration
@@ -133,6 +134,25 @@ func (c *Config) Check() error {
 	if _, err := c.MaxVersion(); err != nil {
 		return err
 	}
+
+	if c.Timeout != nil {
+		if c.Connect != nil && c.Connect.Timeout != nil {
+			if *c.Connect.Timeout > *c.Timeout {
+				c.Connect.Timeout = c.Timeout
+			}
+		}
+		if c.PlainRoundTrip != nil && c.PlainRoundTrip.ReadTimeout != nil {
+			if *c.PlainRoundTrip.ReadTimeout > *c.Timeout {
+				c.PlainRoundTrip.ReadTimeout = c.Timeout
+			}
+		}
+		if c.TLSRoundTrip != nil && c.TLSRoundTrip.ReadTimeout != nil {
+			if *c.TLSRoundTrip.ReadTimeout > *c.Timeout {
+				c.TLSRoundTrip.ReadTimeout = c.Timeout
+			}
+		}
+	}
+
 	return nil
 }
 

@@ -17,6 +17,16 @@ func elapsed(from time.Time) float64 {
 	return time.Now().Sub(from).Seconds()
 }
 
+func checkTimeout(c *Config, e float64) error {
+	if c.Timeout == nil {
+		return nil
+	}
+	if int64(e) > *c.Timeout {
+		return errors.New("time exceeded")
+	}
+	return nil
+}
+
 // DoCheck starts tls check
 func DoCheck(reader io.Reader) *Result {
 	r := &Result{Result: "OK"}
@@ -33,6 +43,7 @@ func DoCheckByConfig(conf *Config) *Result {
 	r := &Result{Result: "OK"}
 
 	t := time.Now()
+	var el float64
 	defer func() {
 		r.Elapsed = elapsed(t)
 	}()
@@ -52,7 +63,11 @@ func DoCheckByConfig(conf *Config) *Result {
 	}
 	defer rawConn.Close()
 	tcpConn := rawConn.(*net.TCPConn)
-	r.SetConnectionInfo(tcpConn, elapsed(tt))
+	el = elapsed(tt)
+	if err := checkTimeout(conf, el); err != nil {
+		r.SetError(err)
+	}
+	r.SetConnectionInfo(tcpConn, el)
 
 	if conf.NeedPlainRoundTrip() {
 		tt = time.Now()
@@ -61,7 +76,11 @@ func DoCheckByConfig(conf *Config) *Result {
 			r.SetError(err)
 			return r
 		}
-		r.SetPlainRoundTripInfo(plainData, elapsed(tt))
+		el = elapsed(tt)
+		if err := checkTimeout(conf, el); err != nil {
+			r.SetError(err)
+		}
+		r.SetPlainRoundTripInfo(plainData, el)
 	}
 
 	tt = time.Now()
@@ -70,7 +89,11 @@ func DoCheckByConfig(conf *Config) *Result {
 		r.SetError(err)
 		return r
 	}
-	r.SetTLSInfo(tlsConn, elapsed(tt))
+	el = elapsed(tt)
+	if err := checkTimeout(conf, el); err != nil {
+		r.SetError(err)
+	}
+	r.SetTLSInfo(tlsConn, el)
 
 	trustedChains, invalidChains, err := verify(conf, tlsConn)
 	if err != nil {
@@ -87,7 +110,11 @@ func DoCheckByConfig(conf *Config) *Result {
 			return r
 		}
 		readStr := string(readBuf)
-		r.SetTLSRoundTripInfo(readStr, elapsed(tt))
+		el = elapsed(tt)
+		if err := checkTimeout(conf, el); err != nil {
+			r.SetError(err)
+		}
+		r.SetTLSRoundTripInfo(readStr, el)
 	}
 	r.SetTrustedChains(trustedChains)
 	return r
