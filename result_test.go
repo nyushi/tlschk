@@ -114,7 +114,7 @@ func TestSetTrustedChains(t *testing.T) {
 		t.Error("r.TLSInfo is not nil, want nil")
 	}
 
-	r.TLSInfo = &tlsInfo{}
+	r.TLSInfo = &ResultTLSInfo{}
 	r.SetTrustedChains(chains)
 	if r.TLSInfo == nil {
 		t.Error("r.TLSInfo is nil, want not nil")
@@ -135,7 +135,7 @@ func TestResultUpdateTLSInfo(t *testing.T) {
 	}
 
 	c := &Cert{root.X509Cert, false, ""}
-	r.TLSInfo = &tlsInfo{
+	r.TLSInfo = &ResultTLSInfo{
 		ReceivedCerts: []CertSummary{
 			c.Summary(),
 		},
