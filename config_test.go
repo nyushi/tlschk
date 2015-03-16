@@ -772,3 +772,37 @@ func TestMaxVersion(t *testing.T) {
 		t.Errorf("Config.MaxVersion returns nil, want error")
 	}
 }
+
+func TestUpdateTimeout(t *testing.T) {
+	c := NewDefaultConfig()
+	timeout := float64(1)
+	c.Timeout = &timeout
+	now := time.Now().Add(-time.Second)
+	c.UpdateTimeout(now)
+	if c.Connect.Timeout == nil {
+		t.Error("c.Connect.Timeout is nil, want not nil")
+	}
+	if c.Handshake.Timeout == nil {
+		t.Error("c.Handshake.Timeout is nil, want not nil")
+	}
+	if c.PlainRoundTrip.Timeout == nil {
+		t.Error("c.PlainRoundTrip.Timeout is nil, want not nil")
+	}
+	if c.TLSRoundTrip.Timeout == nil {
+		t.Error("c.TLSRoundTrip.Timeout is nil, want not nil")
+	}
+
+	if *c.Connect.Timeout > 0 {
+		t.Error("c.Connect.Timeout is negative, want positive")
+	}
+	if *c.Handshake.Timeout > 0 {
+		t.Error("c.Handshake.Timeout is negative, want positive")
+	}
+	if *c.PlainRoundTrip.Timeout > 0 {
+		t.Error("c.PlainRoundTrip.Timeout is negative, want positive")
+	}
+	if *c.TLSRoundTrip.Timeout > 0 {
+		t.Error("c.TLSRoundTrip.Timeout is negative, want positive")
+	}
+
+}
