@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultReadTimeout      = 0
+	defaultTimeout          = 0
 	defaultConnectTimeout   = 10 * time.Second
 	defaultHandshakeTimeout = 10 * time.Second
 	defaultReadSize         = 1024
@@ -24,21 +24,22 @@ const (
 type Config struct {
 	Connect        *ConnectOptions   `json:"connect"`
 	PlainRoundTrip *RoundTripOptions `json:"plain_round_trip"`
-	Handshake      *HandshakeOptions `json:"handshake"` // TODO: make configurable
+	Handshake      *HandshakeOptions `json:"handshake"`
 	TLSRoundTrip   *RoundTripOptions `json:"tls_round_trip"`
-	Timeout        *int64            `json:"timeout"`
+	Timeout        *float64          `json:"timeout"`
 }
 
 // ConnectOptions represents tlschk connect configuration
 type ConnectOptions struct {
-	Address   string `json:"address"`
-	Port      int    `json:"port"`
-	IPVersion *int64 `json:"ip_version"`
-	Timeout   *int64 `json:"timeout"`
+	Address   string   `json:"address"`
+	Port      int      `json:"port"`
+	IPVersion *int64   `json:"ip_version"`
+	Timeout   *float64 `json:"timeout"`
 }
 
 // HandshakeOptions represents tlschk handshake configuration
 type HandshakeOptions struct {
+	Timeout                     *float64 `json:"timeout"`
 	CipherSuites                []string `json:"cipher_suites"`
 	MinVersion                  *string  `json:"min_version"`
 	MaxVersion                  *string  `json:"max_version"`
@@ -53,10 +54,10 @@ type HandshakeOptions struct {
 
 // RoundTripOptions represents tlschk roundtrip configuration
 type RoundTripOptions struct {
-	Send        *string `json:"send"`
-	ReadTimeout *int64  `json:"read_timeout"`
-	ReadSize    *int    `json:"read_size"`
-	ReadUntil   *string `json:"read_until"`
+	Send      *string  `json:"send"`
+	Timeout   *float64 `json:"timeout"`
+	ReadSize  *int     `json:"read_size"`
+	ReadUntil *string  `json:"read_until"`
 }
 
 // NewDefaultConfig returns Config with default parameters
@@ -135,24 +136,6 @@ func (c *Config) Check() error {
 		return err
 	}
 
-	if c.Timeout != nil {
-		if c.Connect != nil && c.Connect.Timeout != nil {
-			if *c.Connect.Timeout > *c.Timeout {
-				c.Connect.Timeout = c.Timeout
-			}
-		}
-		if c.PlainRoundTrip != nil && c.PlainRoundTrip.ReadTimeout != nil {
-			if *c.PlainRoundTrip.ReadTimeout > *c.Timeout {
-				c.PlainRoundTrip.ReadTimeout = c.Timeout
-			}
-		}
-		if c.TLSRoundTrip != nil && c.TLSRoundTrip.ReadTimeout != nil {
-			if *c.TLSRoundTrip.ReadTimeout > *c.Timeout {
-				c.TLSRoundTrip.ReadTimeout = c.Timeout
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -204,29 +187,40 @@ func (c *Config) ConnectTimeout() time.Duration {
 	if c.Connect.Timeout == nil {
 		return defaultConnectTimeout
 	}
-	return time.Duration(*c.Connect.Timeout) * time.Second
+	return time.Duration(*c.Connect.Timeout*1e9) * time.Nanosecond
 }
 
-// PlainReadTimeout returns timeout(sec) for connection
-func (c *Config) PlainReadTimeout() time.Duration {
+// HandshakeTimeout returns timeout(sec) for connection
+func (c *Config) HandshakeTimeout() time.Duration {
+	if c.Handshake == nil {
+		return defaultHandshakeTimeout
+	}
+	if c.Handshake.Timeout == nil {
+		return defaultHandshakeTimeout
+	}
+	return time.Duration(*c.Handshake.Timeout*1e9) * time.Nanosecond
+}
+
+// PlainTimeout returns timeout(sec) for connection
+func (c *Config) PlainTimeout() time.Duration {
 	if c.PlainRoundTrip == nil {
-		return defaultReadTimeout
+		return defaultTimeout
 	}
-	if c.PlainRoundTrip.ReadTimeout == nil {
-		return defaultReadTimeout
+	if c.PlainRoundTrip.Timeout == nil {
+		return defaultTimeout
 	}
-	return time.Duration(*c.PlainRoundTrip.ReadTimeout) * time.Second
+	return time.Duration(*c.PlainRoundTrip.Timeout*1e9) * time.Nanosecond
 }
 
-// TLSReadTimeout returns timeout(sec) for connection
-func (c *Config) TLSReadTimeout() time.Duration {
+// TLSTimeout returns timeout(sec) for connection
+func (c *Config) TLSTimeout() time.Duration {
 	if c.TLSRoundTrip == nil {
-		return defaultReadTimeout
+		return defaultTimeout
 	}
-	if c.TLSRoundTrip.ReadTimeout == nil {
-		return defaultReadTimeout
+	if c.TLSRoundTrip.Timeout == nil {
+		return defaultTimeout
 	}
-	return time.Duration(*c.TLSRoundTrip.ReadTimeout) * time.Second
+	return time.Duration(*c.TLSRoundTrip.Timeout*1e9) * time.Nanosecond
 }
 
 // NeedPlainRoundTrip is returns true when round trip with plain data is needed
@@ -237,7 +231,7 @@ func (c *Config) NeedPlainRoundTrip() bool {
 	if c.PlainData() != nil {
 		return true
 	}
-	if c.PlainReadTimeout() != 0 {
+	if c.PlainTimeout() != 0 {
 		return true
 	}
 	if c.PlainReadUntil() != nil {
@@ -268,7 +262,7 @@ func (c *Config) NeedTLSRoundTrip() bool {
 	if c.TLSData() != nil {
 		return true
 	}
-	if c.TLSReadTimeout() != 0 {
+	if c.TLSTimeout() != 0 {
 		return true
 	}
 	if c.TLSReadUntil() != nil {
@@ -492,4 +486,26 @@ func (c *Config) MaxVersion() (ver uint16, err error) {
 	}
 	ver, err = c.tlsVersion(*c.Handshake.MaxVersion)
 	return
+}
+
+// UpdateTimeout recalculate timeout value from started time
+func (c *Config) UpdateTimeout(t time.Time) {
+	if c.Timeout == nil {
+		return
+	}
+	elapsed := time.Now().Sub(t)
+
+	left := *c.Timeout - elapsed.Seconds()
+	if c.Connect != nil {
+		c.Connect.Timeout = &left
+	}
+	if c.Handshake != nil {
+		c.Handshake.Timeout = &left
+	}
+	if c.PlainRoundTrip != nil {
+		c.PlainRoundTrip.Timeout = &left
+	}
+	if c.TLSRoundTrip != nil {
+		c.TLSRoundTrip.Timeout = &left
+	}
 }

@@ -216,7 +216,7 @@ func TestConnectTimeout(t *testing.T) {
 		t.Errorf("Config.ConnectTimeout is %q, want %q", v, to)
 	}
 
-	var tt int64 = 1
+	var tt float64 = 1
 	c.Connect.Timeout = &tt
 	v = c.ConnectTimeout()
 	d := time.Duration(tt) * time.Second
@@ -225,50 +225,74 @@ func TestConnectTimeout(t *testing.T) {
 	}
 }
 
-func TestPlainReadTimeout(t *testing.T) {
+func TestHandshakeTimeout(t *testing.T) {
+	c := Config{}
+	to := time.Second * 10
+
+	v := c.HandshakeTimeout()
+	if v != to {
+		t.Errorf("Config.HandshakeTimeout is %q, want %q", v, to)
+	}
+
+	c.Handshake = &HandshakeOptions{}
+	v = c.HandshakeTimeout()
+	if v != to {
+		t.Errorf("Config.HandshakeTimeout is %q, want %q", v, to)
+	}
+
+	var tt float64 = 1
+	c.Handshake.Timeout = &tt
+	v = c.HandshakeTimeout()
+	d := time.Duration(tt) * time.Second
+	if v != d {
+		t.Errorf("Config.HandshakeTimeout is %q, want %q", v, d)
+	}
+}
+
+func TestPlainTimeout(t *testing.T) {
 	c := Config{}
 
-	v := c.PlainReadTimeout()
+	v := c.PlainTimeout()
 	if v != 0 {
-		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
+		t.Errorf("Config.PlainTimeout is %q, want 0", v)
 	}
 
 	c.PlainRoundTrip = &RoundTripOptions{}
-	v = c.PlainReadTimeout()
+	v = c.PlainTimeout()
 	if v != 0 {
-		t.Errorf("Config.PlainReadTimeout is %q, want 0", v)
+		t.Errorf("Config.PlainTimeout is %q, want 0", v)
 	}
 
-	var tt int64 = 1
-	c.PlainRoundTrip.ReadTimeout = &tt
-	v = c.PlainReadTimeout()
+	var tt float64 = 1
+	c.PlainRoundTrip.Timeout = &tt
+	v = c.PlainTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
-		t.Errorf("Config.PlainReadTimeout is %q, want %q", v, d)
+		t.Errorf("Config.PlainTimeout is %q, want %q", v, d)
 
 	}
 }
 
-func TestTLSReadTimeout(t *testing.T) {
+func TestTLSTimeout(t *testing.T) {
 	c := Config{}
 
-	v := c.TLSReadTimeout()
+	v := c.TLSTimeout()
 	if v != 0 {
-		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
+		t.Errorf("Config.TLSTimeout is %q, want 0", v)
 	}
 
 	c.TLSRoundTrip = &RoundTripOptions{}
-	v = c.TLSReadTimeout()
+	v = c.TLSTimeout()
 	if v != 0 {
-		t.Errorf("Config.TLSReadTimeout is %q, want 0", v)
+		t.Errorf("Config.TLSTimeout is %q, want 0", v)
 	}
 
-	var tt int64 = 1
-	c.TLSRoundTrip.ReadTimeout = &tt
-	v = c.TLSReadTimeout()
+	var tt float64 = 1
+	c.TLSRoundTrip.Timeout = &tt
+	v = c.TLSTimeout()
 	d := time.Duration(tt) * time.Second
 	if v != d {
-		t.Errorf("Config.TLSReadTimeout is %q, want %q", v, d)
+		t.Errorf("Config.TLSTimeout is %q, want %q", v, d)
 
 	}
 }
@@ -348,14 +372,14 @@ func TestNeedPlainRoundTrip(t *testing.T) {
 	}
 
 	c.PlainRoundTrip.Send = nil
-	var to int64 = 1
-	c.PlainRoundTrip.ReadTimeout = &to
+	var to float64 = 1
+	c.PlainRoundTrip.Timeout = &to
 	v = c.NeedPlainRoundTrip()
 	if v != true {
 		t.Errorf("Config.NeedPlainRoundTrip is %t, want true", v)
 	}
 
-	c.PlainRoundTrip.ReadTimeout = nil
+	c.PlainRoundTrip.Timeout = nil
 	ru := "data"
 	c.PlainRoundTrip.ReadUntil = &ru
 	v = c.NeedPlainRoundTrip()
@@ -416,14 +440,14 @@ func TestNeedTLSRoundTrip(t *testing.T) {
 	}
 
 	c.TLSRoundTrip.Send = nil
-	var to int64 = 1
-	c.TLSRoundTrip.ReadTimeout = &to
+	var to float64 = 1
+	c.TLSRoundTrip.Timeout = &to
 	v = c.NeedTLSRoundTrip()
 	if v != true {
 		t.Errorf("Config.NeedTLSRoundTrip is %t, want true", v)
 	}
 
-	c.TLSRoundTrip.ReadTimeout = nil
+	c.TLSRoundTrip.Timeout = nil
 	ru := "data"
 	c.TLSRoundTrip.ReadUntil = &ru
 	v = c.NeedTLSRoundTrip()

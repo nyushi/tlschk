@@ -131,7 +131,7 @@ func TestDoCheckRefused(t *testing.T) {
     "check_trusted_by_root": false
   },
   "connect": {
-    "read_timeout": 1,
+    "timeout": 1,
     "connect_timeout": 1,
     "address": "127.0.0.1",
     "port": 4443
@@ -165,7 +165,7 @@ func TestDoCheckSuccess(t *testing.T) {
     "check_trusted_by_root": false
   },
   "connect": {
-    "read_timeout": 1,
+    "timeout": 1,
     "connect_timeout": 1,
     "address": "127.0.0.1",
     "port": 4443
@@ -204,7 +204,7 @@ func TestDoCheckSuccessStartTLS(t *testing.T) {
     "connect_timeout": 1
   },
   "plain_round_trip": {
-    "read_timeout": 1,
+    "timeout": 1,
     "send": "STARTTLS\r\n"
   }
 }`)
@@ -268,7 +268,7 @@ func TestDoCheckServerNameMatch(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1
+    "timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -301,7 +301,7 @@ func TestDoCheckServerNameNotMatch(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1
+    "timeout": 1
   }
 }`)
 	result := DoCheck(r)
@@ -335,7 +335,7 @@ func TestDoCheckTrustedOK(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1
+    "timeout": 1
   }
 }`, chain.CertPEM)
 	r := strings.NewReader(j)
@@ -369,7 +369,7 @@ func TestDoCheckTrustedNG(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1
+    "timeout": 1
   }
 }`)
 
@@ -405,7 +405,7 @@ func TestDoCheckReadData(t *testing.T) {
     "read_size": 4
   },
   "tls_round_trip": {
-    "read_timeout": 1,
+    "timeout": 1,
     "read_size": 4
   }
 }`)
@@ -449,7 +449,7 @@ func TestDoCheckReadDataTimeout(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1,
+    "timeout": 1,
     "read_size": 4
   }
 }`)
@@ -491,7 +491,7 @@ func TestDoCheckInvalidChain(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1,
+    "timeout": 1,
     "read_size": 4
   }
 }`)
@@ -527,7 +527,7 @@ func TestDoCheckExpired(t *testing.T) {
     "connect_timeout": 1
   },
   "tls_round_trip": {
-    "read_timeout": 1,
+    "timeout": 1,
     "read_size": 4
   }
 }`)

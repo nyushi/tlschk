@@ -17,11 +17,12 @@ func elapsed(from time.Time) float64 {
 	return time.Now().Sub(from).Seconds()
 }
 
-func checkTimeout(c *Config, e float64) error {
+func checkTimeout(c *Config, t time.Time) error {
 	if c.Timeout == nil {
 		return nil
 	}
-	if int64(e) > *c.Timeout {
+	e := time.Now().Sub(t).Seconds()
+	if e >= *c.Timeout {
 		return errors.New("time exceeded")
 	}
 	return nil
@@ -56,6 +57,7 @@ func DoCheckByConfig(conf *Config) *Result {
 
 	var tt time.Time
 	tt = time.Now()
+	conf.UpdateTimeout(t)
 	rawConn, err := connect(conf)
 	if err != nil {
 		r.SetError(err)
@@ -64,12 +66,14 @@ func DoCheckByConfig(conf *Config) *Result {
 	defer rawConn.Close()
 	tcpConn := rawConn.(*net.TCPConn)
 	el = elapsed(tt)
-	if err := checkTimeout(conf, el); err != nil {
+	if err := checkTimeout(conf, t); err != nil {
 		r.SetError(err)
+		return r
 	}
 	r.SetConnectionInfo(tcpConn, el)
 
 	if conf.NeedPlainRoundTrip() {
+		conf.UpdateTimeout(t)
 		tt = time.Now()
 		plainData, err := plainRoundTrip(conf, tcpConn)
 		if err != nil {
@@ -77,8 +81,9 @@ func DoCheckByConfig(conf *Config) *Result {
 			return r
 		}
 		el = elapsed(tt)
-		if err := checkTimeout(conf, el); err != nil {
+		if err := checkTimeout(conf, t); err != nil {
 			r.SetError(err)
+			return r
 		}
 		r.SetPlainRoundTripInfo(plainData, el)
 	}
@@ -90,8 +95,9 @@ func DoCheckByConfig(conf *Config) *Result {
 		return r
 	}
 	el = elapsed(tt)
-	if err := checkTimeout(conf, el); err != nil {
+	if err := checkTimeout(conf, t); err != nil {
 		r.SetError(err)
+		return r
 	}
 	r.SetTLSInfo(tlsConn, el)
 
@@ -103,6 +109,7 @@ func DoCheckByConfig(conf *Config) *Result {
 	r.UpdateTLSInfo(invalidChains)
 
 	if conf.NeedTLSRoundTrip() {
+		conf.UpdateTimeout(t)
 		tt = time.Now()
 		readBuf, err := tlsRoundTrip(conf, tlsConn)
 		if err != nil {
@@ -111,8 +118,9 @@ func DoCheckByConfig(conf *Config) *Result {
 		}
 		readStr := string(readBuf)
 		el = elapsed(tt)
-		if err := checkTimeout(conf, el); err != nil {
+		if err := checkTimeout(conf, t); err != nil {
 			r.SetError(err)
+			return r
 		}
 		r.SetTLSRoundTripInfo(readStr, el)
 	}
@@ -136,7 +144,7 @@ func connect(conf *Config) (net.Conn, error) {
 
 func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 	errPrefix := "Roundtrip(plain data) error."
-	buf, err := roundTrip(conn, conf.PlainData(), conf.PlainReadTimeout(), conf.PlainReadSize(), conf.PlainReadUntil())
+	buf, err := roundTrip(conn, conf.PlainData(), conf.PlainTimeout(), conf.PlainReadSize(), conf.PlainReadUntil())
 	if err != nil {
 		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
@@ -146,7 +154,7 @@ func plainRoundTrip(conf *Config, conn *net.TCPConn) (string, error) {
 func startTLS(conf *Config, conn net.Conn) (*tls.Conn, error) {
 	errPrefix := "TLS error."
 	tlsConn := tls.Client(conn, conf.TLSConfig())
-	tlsConn.SetDeadline(time.Now().Add(defaultHandshakeTimeout))
+	tlsConn.SetDeadline(time.Now().Add(conf.HandshakeTimeout()))
 	if err := tlsConn.Handshake(); err != nil {
 		return nil, fmt.Errorf("%s %s", errPrefix, err.Error())
 	}
@@ -244,7 +252,7 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, [][]*Cert, error) {
 
 func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 	errPrefix := "Application protocol error."
-	buf, err := roundTrip(tlsConn, conf.TLSData(), conf.TLSReadTimeout(), conf.TLSReadSize(), conf.TLSReadUntil())
+	buf, err := roundTrip(tlsConn, conf.TLSData(), conf.TLSTimeout(), conf.TLSReadSize(), conf.TLSReadUntil())
 	if err != nil {
 		err = fmt.Errorf("%s Failed to read. %s", errPrefix, err.Error())
 	}
@@ -252,9 +260,11 @@ func tlsRoundTrip(conf *Config, tlsConn *tls.Conn) ([]byte, error) {
 }
 
 func roundTrip(conn net.Conn, data []byte, timeout time.Duration, readSize int, readUntil []byte) ([]byte, error) {
+	t := time.Now()
 	if err := write(conn, timeout, data); err != nil {
 		return nil, err
 	}
+	timeout = timeout - time.Now().Sub(t)
 	return read(conn, timeout, readSize, readUntil)
 }
 
@@ -262,9 +272,12 @@ func write(conn net.Conn, timeout time.Duration, data []byte) error {
 	if data == nil {
 		return nil
 	}
+	t := time.Now()
 	wrote := 0
 	for wrote < len(data) {
-		conn.SetWriteDeadline(time.Now().Add(timeout))
+		el := time.Now().Sub(t)
+		to := timeout - el
+		conn.SetWriteDeadline(time.Now().Add(to))
 		n, err := conn.Write(data[wrote:])
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok {
@@ -282,8 +295,11 @@ func write(conn net.Conn, timeout time.Duration, data []byte) error {
 func read(conn net.Conn, timeout time.Duration, size int, until []byte) ([]byte, error) {
 	buf := make([]byte, size)
 	totalRead := 0
+	t := time.Now()
 	for {
-		conn.SetReadDeadline(time.Now().Add(timeout))
+		el := time.Now().Sub(t)
+		to := timeout - el
+		conn.SetReadDeadline(time.Now().Add(to))
 		n, err := conn.Read(buf[totalRead:])
 		if err != nil {
 			if err == io.EOF {
