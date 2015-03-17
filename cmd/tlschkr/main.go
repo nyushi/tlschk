@@ -53,9 +53,9 @@ func getConfig(host string, port int) *tlschk.Config {
 	}
 	if *startTLS {
 		send := "STARTTLS\r\n"
-		var rt int64 = 5
+		var rt float64 = 5
 		c.PlainRoundTrip.Send = &send
-		c.PlainRoundTrip.ReadTimeout = &rt
+		c.PlainRoundTrip.Timeout = &rt
 	}
 	if *trust {
 		b := false
