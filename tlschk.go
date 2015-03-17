@@ -181,7 +181,9 @@ func verify(conf *Config, tlsConn *tls.Conn) ([][]*Cert, [][]*Cert, error) {
 	invalidChains := [][]*Cert{}
 	for _, x509chain := range x509chains {
 		chain := NewCertChain(x509chain)
-		chain.CheckRevocation()
+		if conf.CheckRevocation() {
+			chain.CheckRevocation()
+		}
 		valid := true
 		if chain.IsRevoked() {
 			valid = false
