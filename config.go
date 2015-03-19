@@ -187,6 +187,7 @@ func (c *Config) ConnectTimeout() time.Duration {
 	if c.Connect.Timeout == nil {
 		return defaultConnectTimeout
 	}
+
 	return time.Duration(*c.Connect.Timeout*1e9) * time.Nanosecond
 }
 
@@ -493,6 +494,9 @@ func (c *Config) UpdateTimeout(t time.Time) {
 	if c.Timeout == nil {
 		return
 	}
+	if *c.Timeout == 0 {
+		return
+	}
 	elapsed := time.Now().Sub(t)
 
 	left := *c.Timeout - elapsed.Seconds()
@@ -502,10 +506,10 @@ func (c *Config) UpdateTimeout(t time.Time) {
 	if c.Handshake != nil {
 		c.Handshake.Timeout = &left
 	}
-	if c.PlainRoundTrip != nil {
+	if c.PlainRoundTrip != nil && c.NeedPlainRoundTrip() {
 		c.PlainRoundTrip.Timeout = &left
 	}
-	if c.TLSRoundTrip != nil {
+	if c.TLSRoundTrip != nil && c.NeedTLSRoundTrip() {
 		c.TLSRoundTrip.Timeout = &left
 	}
 }
