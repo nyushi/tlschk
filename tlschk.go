@@ -21,6 +21,9 @@ func checkTimeout(c *Config, t time.Time) error {
 	if c.Timeout == nil {
 		return nil
 	}
+	if *c.Timeout == 0 {
+		return nil
+	}
 	e := time.Now().Sub(t).Seconds()
 	if e >= *c.Timeout {
 		return errors.New("time exceeded")
