@@ -179,6 +179,24 @@ func (c *Config) DialNetwork() string {
 	return base
 }
 
+// DialAddress returns address string for dial
+func (c *Config) DialAddress() string {
+	host := "127.0.0.1"
+	port := 443
+	if c.Connect != nil {
+		if c.Connect.Address != "" {
+			host = c.Connect.Address
+		}
+		if strings.Contains(host, ":") {
+			host = fmt.Sprintf("[%s]", host)
+		}
+		if c.Connect.Port != 0 {
+			port = c.Connect.Port
+		}
+	}
+	return fmt.Sprintf("%s:%d", host, port)
+}
+
 // ConnectTimeout returns timeout(sec) for connection
 func (c *Config) ConnectTimeout() time.Duration {
 	if c.Connect == nil {

@@ -201,6 +201,49 @@ func TestDialNetwork(t *testing.T) {
 	}
 }
 
+func TestDialAddress(t *testing.T) {
+	var want string
+	var act string
+
+	c := Config{}
+
+	want = "127.0.0.1:443"
+	act = c.DialAddress()
+	if act != want {
+		t.Errorf("Config.DialAddress is %q, want %q", act, want)
+	}
+
+	c.Connect = &ConnectOptions{}
+	want = "127.0.0.1:443"
+	act = c.DialAddress()
+	if act != want {
+		t.Errorf("Config.DialAddress is %q, want %q", act, want)
+	}
+
+	c.Connect.Address = "127.0.0.1"
+	want = "127.0.0.1:443"
+	act = c.DialAddress()
+	if act != want {
+		t.Errorf("Config.DialAddress is %q, want %q", act, want)
+	}
+
+	c.Connect.Address = "127.0.0.1"
+	c.Connect.Port = 443
+	want = "127.0.0.1:443"
+	act = c.DialAddress()
+	if act != want {
+		t.Errorf("Config.DialAddress is %q, want %q", act, want)
+	}
+
+	c.Connect.Address = "fe80::1"
+	c.Connect.Port = 443
+	want = "[fe80::1]:443"
+	act = c.DialAddress()
+	if act != want {
+		t.Errorf("Config.DialAddress is %q, want %q", act, want)
+	}
+}
+
 func TestConnectTimeout(t *testing.T) {
 	c := Config{}
 	to := time.Second * 10

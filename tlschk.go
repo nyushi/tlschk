@@ -135,7 +135,7 @@ func connect(conf *Config) (net.Conn, error) {
 	errPrefix := "Network error."
 	rawConn, err := net.DialTimeout(
 		conf.DialNetwork(),
-		fmt.Sprintf("%s:%d", conf.Connect.Address, conf.Connect.Port),
+		conf.DialAddress(),
 		conf.ConnectTimeout(),
 	)
 	if err != nil {

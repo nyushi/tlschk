@@ -2,13 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/nyushi/tlschk"
 )
@@ -21,19 +18,12 @@ var (
 	days     = flag.Int64("days", 30, "number of certificate remaining days")
 )
 
-func getHostPort(in string) (string, int, error) {
-	if in == "" {
-		return "", 0, errors.New("invalid input")
+func getPort(in string) int {
+	port, _ := strconv.Atoi(in)
+	if port == 0 {
+		port = 443
 	}
-	if !strings.Contains(in, ":") {
-		return in, 443, nil
-	}
-	host, portStr, err := net.SplitHostPort(in)
-	if err != nil {
-		return "", 0, err
-	}
-	port, _ := strconv.Atoi(portStr)
-	return host, port, nil
+	return port
 }
 
 func getConfig(host string, port int) *tlschk.Config {
@@ -70,9 +60,12 @@ func getConfig(host string, port int) *tlschk.Config {
 
 func main() {
 	flag.Parse()
-	host, port, err := getHostPort(flag.Arg(0))
+	//host, port, err := getHostPort(flag.Arg(0))
+	host := flag.Arg(0)
+	port := getPort(flag.Arg(1))
+
 	var result *tlschk.Result
-	if err != nil {
+	if host == "" {
 		result = tlschk.DoCheck(os.Stdin)
 	} else {
 		c := getConfig(host, port)
